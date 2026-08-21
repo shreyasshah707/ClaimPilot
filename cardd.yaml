@@ -1,0 +1,11 @@
+path: D:\Projects\ClaimPilot\data\CarDD_release\CarDD_release\CarDD_COCO
+train: train2017
+val: val2017
+
+names:
+  0: dent
+  1: scratch
+  2: crack
+  3: glass shatter
+  4: lamp broken
+  5: tire flat
