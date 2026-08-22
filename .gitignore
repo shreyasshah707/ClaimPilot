@@ -22,4 +22,29 @@ __pycache__/
 node_modules/
 dist/
 dist-ssr/
-*.log
+*.log
+# Virtual Environment
+venv/
+env/
+
+# Datasets & Zip Archives
+data/
+CarDD/
+precise2d_dataset1/
+*.zip
+
+# Training Logs & Heavy Checkpoints
+runs/
+precise2d_dataset1/
+checkpoints/
+yolov8s.pt
+
+# Python & System Cache
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+v1/
+v2/
+frontend/
+fast_train.py
