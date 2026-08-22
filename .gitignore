@@ -19,3 +19,7 @@ __pycache__/
 *.pyc
 .DS_Store
 .vscode/
+v1/
+v2/
+frontend/
+fast_train.py
