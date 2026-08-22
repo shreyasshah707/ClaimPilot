@@ -16,6 +16,8 @@ export const NewClaim = () => {
   const [incidentDate, setIncidentDate] = useState('');
   const [location, setLocation] = useState('');
   const [vehicle, setVehicle] = useState('');
+  const [engineNumber, setEngineNumber] = useState('');
+  const [chassisNumber, setChassisNumber] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
 
@@ -39,6 +41,8 @@ export const NewClaim = () => {
       incidentDate,
       location,
       vehicle,
+      engineNumber,
+      chassisNumber,
       description,
       images
     });
@@ -120,8 +124,19 @@ export const NewClaim = () => {
 
             <div className="flex gap-md">
               <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Engine Number</label>
+                <input type="text" className="form-input" placeholder="e.g. G15A-123456" value={engineNumber} onChange={(e) => setEngineNumber(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Chassis Number</label>
+                <input type="text" className="form-input" placeholder="e.g. MA3E123456789" value={chassisNumber} onChange={(e) => setChassisNumber(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="flex gap-md">
+              <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Date</label>
-                <input type="date" className="form-input" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} />
+                <input type="date" className="form-input" max={new Date().toISOString().split('T')[0]} value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
                 <label className="form-label">Location</label>
@@ -135,7 +150,7 @@ export const NewClaim = () => {
             </div>
 
             <div className="flex justify-end mt-4">
-              <button className="btn-accent" onClick={handleNext} disabled={!incidentDate || !vehicle || !description}>
+              <button className="btn btn-primary" onClick={handleNext} disabled={!incidentDate || !vehicle || !description}>
                 Continue <ChevronRight size={16} />
               </button>
             </div>
@@ -186,8 +201,8 @@ export const NewClaim = () => {
             )}
 
             <div className="flex justify-between mt-4">
-              <button className="btn-secondary" onClick={handlePrev}>Back</button>
-              <button className="btn-accent" onClick={handleNext} disabled={images.length === 0}>
+              <button className="btn btn-secondary" onClick={handlePrev}>Back</button>
+              <button className="btn btn-primary" onClick={handleNext} disabled={images.length === 0}>
                 Review Claim <ChevronRight size={16} />
               </button>
             </div>
@@ -225,8 +240,8 @@ export const NewClaim = () => {
             </div>
 
             <div className="flex justify-between mt-4">
-              <button className="btn-secondary" onClick={handlePrev} disabled={loading}>Back</button>
-              <button className="btn-accent" onClick={handleSubmit} disabled={loading} style={{ backgroundColor: 'var(--success)', border: 'none' }}>
+              <button className="btn btn-secondary" onClick={handlePrev} disabled={loading}>Back</button>
+              <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{ backgroundColor: 'var(--success)', border: 'none' }}>
                 {loading ? 'Submitting...' : 'Submit Claim'}
               </button>
             </div>

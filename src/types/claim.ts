@@ -11,6 +11,8 @@ export interface Claim {
   incidentDate: string;
   location: string;
   description: string;
+  engineNumber?: string;
+  chassisNumber?: string;
   submittedAt: string;
   status: ClaimStatus;
   images: string[];

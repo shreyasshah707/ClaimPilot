@@ -131,6 +131,12 @@ export const AgentClaimDetails = () => {
                     <div>
                       <span className="text-muted block text-xs">Vehicle</span>
                       <span>{claim.vehicle}</span>
+                      {(claim.engineNumber || claim.chassisNumber) && (
+                        <div style={{ marginTop: '0.25rem', display: 'flex', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {claim.engineNumber && <span>ENG: {claim.engineNumber}</span>}
+                          {claim.chassisNumber && <span>VIN: {claim.chassisNumber}</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Card>

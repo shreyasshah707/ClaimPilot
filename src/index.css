@@ -8,44 +8,45 @@
 
 :root {
   /* Backgrounds — tonal layering, no shadows */
-  --bg-base:       #0A0A0A; /* level 0: page background */
-  --bg-surface:    #141414; /* level 1: cards, panels */
-  --bg-overlay:    #1C1C1C; /* level 2: modals, drawers */
-  --bg-hover:      #1A1A1A; /* interactive hover */
-  --bg-active:     #222222; /* active / selected */
+  --bg-base:       #F3F4F6; /* level 0: page background (light gray) */
+  --bg-surface:    #FFFFFF; /* level 1: cards, panels (white) */
+  --bg-overlay:    #FFFFFF; /* level 2: modals, drawers */
+  --bg-hover:      #F9FAFB; /* interactive hover */
+  --bg-active:     #F3F4F6; /* active / selected */
 
   /* Text */
-  --text-primary:   #E5E2E1;
-  --text-secondary: #A09888; /* muted labels, metadata */
-  --text-inverse:   #1A1000;
+  --text-primary:   #111827; /* dark gray / almost black */
+  --text-secondary: #6B7280; /* muted labels, metadata */
+  --text-inverse:   #FFFFFF;
 
   /* Borders — 1px line-work only */
-  --border:         #27272A;
-  --border-strong:  #3F3F46;
+  --border:         #E5E7EB;
+  --border-strong:  #D1D5DB;
 
-  /* Accent — muted gold, CTAs only */
-  --accent:         #D4A853;
-  --accent-hover:   #C09240;
-  --accent-dim:     rgba(212, 168, 83, 0.12);
+  /* Accent — Green */
+  --accent:         #059669;
+  --accent-hover:   #047857;
+  --accent-dim:     rgba(5, 150, 105, 0.12);
 
   /* Semantic — desaturated for professional tone */
-  --success:        #4CAF7D;
-  --success-bg:     rgba(76, 175, 125, 0.10);
-  --success-border: rgba(76, 175, 125, 0.20);
+  --success:        #059669;
+  --success-bg:     rgba(5, 150, 105, 0.10);
+  --success-border: rgba(5, 150, 105, 0.20);
 
-  --warning:        #D4A853;
-  --warning-bg:     rgba(212, 168, 83, 0.10);
-  --warning-border: rgba(212, 168, 83, 0.20);
+  --warning:        #D97706;
+  --warning-bg:     rgba(217, 119, 6, 0.10);
+  --warning-border: rgba(217, 119, 6, 0.20);
 
-  --danger:         #C0504A;
-  --danger-bg:      rgba(192, 80, 74, 0.10);
-  --danger-border:  rgba(192, 80, 74, 0.20);
+  --danger:         #DC2626;
+  --danger-bg:      rgba(220, 38, 38, 0.10);
+  --danger-border:  rgba(220, 38, 38, 0.20);
 
-  --neutral-bg:     rgba(160, 152, 136, 0.10);
-  --neutral-border: rgba(160, 152, 136, 0.20);
+  --neutral-bg:     rgba(107, 114, 128, 0.10);
+  --neutral-border: rgba(107, 114, 128, 0.20);
 
   /* Typography */
-  --font-family:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-logo: 'Poppins', sans-serif;
   --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
 
   /* Spacing — 4px base rhythm */
@@ -57,9 +58,16 @@
   --space-2xl: 3rem;
 
   /* Border Radius */
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
   /* Legacy aliases — keep existing code working */
   --bg-primary:     var(--bg-base);
@@ -82,6 +90,7 @@
 
 body {
   font-family: var(--font-family);
+  font-weight: 300; /* Lighter on the eyes */
   background-color: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.55;
@@ -234,23 +243,25 @@ h1, h2, h3, h4, h5, h6 {
    ============================================================ */
 .card {
   background-color: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border); /* Subtler border in light theme */
+  border-radius: var(--radius-xl);
   padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .interactive-card {
   background-color: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid transparent; /* No strong border */
+  border-radius: var(--radius-xl);
   padding: var(--space-md);
   cursor: pointer;
-  transition: background-color 0.12s ease, border-color 0.12s ease;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .interactive-card:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ============================================================

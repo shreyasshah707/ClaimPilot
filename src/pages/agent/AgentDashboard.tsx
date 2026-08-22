@@ -43,7 +43,7 @@ export const AgentDashboard = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
 
       {/* ── Page header ── */}
       <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
