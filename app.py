@@ -1,12 +1,11 @@
 """
 ClaimPilot — Precise 2D/3D Motor Insurance Repair-Cost Estimation Pipeline
 =============================================================================
-A single-file Streamlit application fusing 2D YOLO damage detection, SAM2 
-segmentation, Apple Depth Pro metric depth, and DSINE surface normals into an 
-automated motor insurance triage and auto-approval engine.
+Streamlit application fusing 2D YOLO damage detection, 3D metric depth estimation,
+and Google Gemini API for narrative vs. severity consistency checking and INR (₹) cost estimation.
 
 Run:
-    pip install streamlit numpy opencv-python-headless matplotlib plotly torch ultralytics
+    pip install streamlit numpy opencv-python-headless matplotlib plotly torch ultralytics google-genai
     streamlit run app.py
 """
 
@@ -36,12 +35,30 @@ try:
 except ImportError:
     HAS_YOLO = False
 
+# Optional Gemini API SDK (supports both google-genai and google-generativeai)
+HAS_GEMINI = False
+try:
+    from google import genai
+    from google.genai import types
+    GEMINI_SDK = "genai"
+    HAS_GEMINI = True
+except ImportError:
+    try:
+        import google.generativeai as genai_legacy
+        GEMINI_SDK = "legacy"
+        HAS_GEMINI = True
+    except ImportError:
+        HAS_GEMINI = False
+
 # ---------------------------------------------------------------------------
 # CONSTANTS & CONFIGURATION
 # ---------------------------------------------------------------------------
+# 🔑 PASTE YOUR GEMINI API KEY HERE DIRECTLY:
+GEMINI_API_KEY = "AIzaSyDMBy1ge9-iHWS53SyibcyoAqH-WKMfWhY"
+
 IMG_SIZE = 480                 # Visual canvas resolution (px)
 PLATE_PIXEL_WIDTH = 190        # Fixed pixel width of calibration reference plate
-DEFAULT_REF_MM = 500           # Standard EU/US license plate width in mm
+DEFAULT_REF_MM = 500           # Standard EU/US/IN license plate width in mm
 METRIC_WEIGHTS_PATH = "./weights/claimpilot_final_weights.pt"
 YOLO_WEIGHTS_PATH = "./weights/cardd_best.pt"
 
@@ -50,16 +67,19 @@ PRESETS = {
         base_bgr=(150, 60, 40), center=(180, 190), sigma=(24, 13),
         angle=15, amp_mm=1.6, base_mm=800.0,
         blurb="Shallow clear-coat scuff, no structural deformation.",
+        narrative="I scraped against a roadside bush while turning into my residential parking slot.",
     ),
     "Medium PDR Dent": dict(
         base_bgr=(40, 110, 185), center=(240, 230), sigma=(52, 48),
         angle=0, amp_mm=6.5, base_mm=850.0,
         blurb="Rounded door-panel dent, metal still elastic — PDR viable.",
+        narrative="A stray cricket ball hit the rear side door while the vehicle was parked near a playground.",
     ),
     "Severe Collision Crease": dict(
         base_bgr=(55, 55, 58), center=(250, 235), sigma=(115, 28),
         angle=35, amp_mm=17.0, base_mm=900.0,
         blurb="Elongated high-energy crease with sharp metal fold.",
+        narrative="I accidentally reversed into a sharp concrete pillar in a basement parking garage at ~15 km/h.",
     ),
 }
 
@@ -181,7 +201,6 @@ def run_live_inference(bgr_img, metric_model, yolo_model=None, real_mm=DEFAULT_R
     with torch.no_grad():
         mask_logits, pred_depth, pred_normals = metric_model(tensor_in)
 
-        # Use CNN mask head if YOLO did not trigger
         if mask.sum() == 0:
             mask_prob = torch.sigmoid(mask_logits).squeeze().cpu().numpy()
             mask = (mask_prob > 0.35).astype(np.uint8)
@@ -209,7 +228,6 @@ def run_live_inference(bgr_img, metric_model, yolo_model=None, real_mm=DEFAULT_R
             if cv2.contourArea(largest) > 100:
                 cv2.drawContours(mask, [largest], -1, 1, -1)
 
-        # Fail-safe center ROI
         if mask.sum() == 0:
             cy, cx = size // 2, size // 2
             mask[cy-50:cy+50, cx-50:cx+50] = 1
@@ -303,7 +321,7 @@ def build_scenario(preset_name, size=IMG_SIZE, real_mm=DEFAULT_REF_MM):
 
 
 # ---------------------------------------------------------------------------
-# MATHEMATICAL & FINANCIAL COMPUTATIONS
+# MATHEMATICAL & FINANCIAL COMPUTATIONS (INR BASIS)
 # ---------------------------------------------------------------------------
 def apply_clahe_glare_reduction(bgr_img):
     lab = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2LAB)
@@ -369,23 +387,290 @@ def compute_metrics(depth_map, normal_map, mask, mm_per_px):
 
 
 def approval_engine(depth_mm, angle_deg, multiplier=1.0):
+    """Generates repair recommendations and benchmark costs in Indian Rupees (INR)."""
     if depth_mm > 10.0 or angle_deg >= 15.0:
-        return dict(status="MANUAL REVIEW", action="Panel Replacement", cost=int(1200 * multiplier), color="orange", tier=3)
+        base_cost = 18000
+        return dict(status="MANUAL REVIEW", action="Panel Replacement + Repaint", cost=int(base_cost * multiplier), color="orange", tier=3)
     if depth_mm < 3.0 and angle_deg < 5.0:
-        return dict(status="AUTO-APPROVED", action="Polish & Touch-Up", cost=int(150 * multiplier), color="green", tier=1)
-    return dict(status="AUTO-APPROVED", action="Paintless Dent Repair (PDR)", cost=int(450 * multiplier), color="green", tier=2)
+        base_cost = 2500
+        return dict(status="AUTO-APPROVED", action="Polish & Minor Touch-Up", cost=int(base_cost * multiplier), color="green", tier=1)
+    base_cost = 6500
+    return dict(status="AUTO-APPROVED", action="Paintless Dent Repair (PDR) + Panel Paint", cost=int(base_cost * multiplier), color="green", tier=2)
 
 
-def build_payload(scenario_label, metrics, decision, mm_per_px, backend_mode, claim_id, panel_type, quality_conf, img_hash):
+# ---------------------------------------------------------------------------
+# GEMINI API INTEGRATION (NARRATIVE VS SEVERITY & INR ESTIMATION)
+# ---------------------------------------------------------------------------
+def generate_gemini_inr_estimate(bgr_img, metrics, decision, panel_type, user_narrative, api_key):
+    """Sends image, depth metrics, and user narrative to Gemini for consistency auditing and INR cost estimation."""
+    if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
+        return None
+
+    _, encoded_img = cv2.imencode('.jpg', bgr_img)
+    img_bytes = encoded_img.tobytes()
+
+    prompt = f"""
+You are an expert Senior Insurance Adjuster and Automotive Body Repair Estimator with 15+ years of experience in the Indian motor insurance market.
+
+Your task is to analyze the provided vehicle damage photo and produce a **clear, professional assessment report** in natural language (not JSON) that would be defensible in an insurance claims audit.
+
+---
+
+## INPUT DATA
+
+### 1. User Incident Narrative
+"{user_narrative}"
+
+### 2. 3D Metric Sensor Telemetry (Physical Measurements)
+- **Max Dent Depth (ΔZ):** {metrics['max_depth_mm']} mm
+- **Damaged Surface Area:** {metrics['area_cm2']} cm²
+- **Surface Normal Crease Angle:** {metrics['angle_deg']}°
+- **Panel Material:** {panel_type}
+- **Baseline Rule Engine Status:** {decision['status']} ({decision['action']})
+
+### 3. 2026 India Repair Cost Reference Data (Use These Ranges)
+| Damage Type | Severity | Parts Cost (₹) | Labor Cost (₹) | Total (₹) |
+|-------------|----------|----------------|----------------|-----------|
+| Minor Dent (PDR) | <5mm depth, <100cm² | 200-400 | 200-600 | 400-1,000 |
+| Major Dent (Panel Work) | 5-20mm depth, 100-500cm² | 600-1,200 | 600-1,200 | 1,200-2,400 |
+| Severe Dent (Structural) | >20mm depth, >500cm² | 1,500-3,000 | 1,500-3,000 | 3,000-6,000 |
+| Minor Scratch (Surface) | Clear coat only | 100-200 | 100-300 | 200-500 |
+| Major Scratch (Primer + Paint) | Through primer | 300-600 | 400-800 | 700-1,400 |
+| Crack (Plastic Panel) | Repairable | 400-800 | 400-800 | 800-1,600 |
+| Crack (Metal Panel) | Requires welding | 800-1,500 | 800-1,500 | 1,600-3,000 |
+| Glass Shatter (Windshield) | OEM replacement | 2,500-4,500 | 500-1,000 | 3,000-5,500 |
+| Glass Shatter (Side Window) | OEM replacement | 1,500-3,000 | 300-600 | 1,800-3,600 |
+| Lamp Broken (Headlight) | OEM replacement | 1,500-3,500 | 200-400 | 1,700-3,900 |
+| Lamp Broken (Taillight) | OEM replacement | 800-2,000 | 150-300 | 950-2,300 |
+| Tire Flat (Puncture) | Repairable | 50-100 | 50-100 | 100-200 |
+| Tire Flat (Replacement) | New tire needed | 1,500-3,500 | 100-200 | 1,600-3,700 |
+
+**Labor Rates (India, 2026):**
+- Independent body shop: ₹135-200/hour
+- Authorized service center: ₹250-400/hour
+- Luxury brand (BMW/Merc/Audi): ₹500-800/hour
+
+---
+
+## YOUR TASK
+
+Provide a **concise, professional assessment report** in the following format:
+
+---
+
+## **Damage Assessment**
+
+**Primary Damage Type:** [dent|scratch|crack|glass shatter|tire flat|lamp broken]  
+**Severity:** [minor|moderate|major|severe]  
+**Confidence:** [high|medium|low]  
+**Physical Measurements:** Dent depth {metrics['max_depth_mm']}mm, Damaged area {metrics['area_cm2']}cm², Crease angle {metrics['angle_deg']}°
+
+---
+
+## **Narrative Consistency Audit**
+
+**User Statement:** "{user_narrative}"
+
+**Physical Plausibility:** [plausible|questionable|implausible]
+
+**Consistency Verdict:** [CONSISTENT WITH STATEMENT] or [INCONSISTENCY / POTENTIAL FRAUD FLAG]
+
+**Reasoning:** [Explain in 2-3 sentences whether the measured depth ({metrics['max_depth_mm']}mm) and crease angle ({metrics['angle_deg']}°) match the described impact mechanism. If inconsistent, explain why.]
+
+**Fraud Risk Score:** [0-100]  
+- 0-20: Low risk (narrative matches damage, no red flags)  
+- 21-50: Medium risk (minor inconsistencies, worth monitoring)  
+- 51-80: High risk (major inconsistencies, route to investigator)  
+- 81-100: Critical risk (obvious fraud, reject claim)
+
+---
+
+## **Itemized Repair Cost Estimate (INR ₹)**
+
+Based on 2026 India bodyshop standards:
+
+**1. Body Repair Labor (Denting/PDR):**  
+   - Work: [specific work, e.g., "Panel reshaping, crease removal"]  
+   - Hours: [X.X hours]  
+   - Rate: ₹[XXX]/hour  
+   - **Subtotal: ₹[XXX]**
+
+**2. Surface Primer & Paint Respray:**  
+   - Work: [specific work, e.g., "Primer, base coat, clear coat"]  
+   - Hours: [X.X hours]  
+   - Rate: ₹[XXX]/hour  
+   - **Subtotal: ₹[XXX]**
+
+**3. Material Surcharge:**  
+   - Parts/Materials: [specific parts, e.g., "Primer, paint, consumables"]  
+   - Quantity: [X]  
+   - Unit Cost: ₹[XXX]  
+   - **Subtotal: ₹[XXX]**
+
+---
+
+### **Total Estimated Repair Cost: ₹[XXXX]**
+
+**Cost Range:** ₹[XXXX] - ₹[XXXX] (depending on parts availability, paint quality, shop rates)
+
+**Cost Confidence:** [high|medium|low]  
+- High: Clear photo, good lighting, damage fully visible  
+- Medium: Some occlusion, moderate lighting  
+- Low: Poor lighting, damage partially hidden, multiple angles needed
+
+---
+
+## **Final Adjuster Recommendation**
+
+**Decision:** [AUTO-APPROVE | HUMAN REVIEW REQUIRED | PHYSICAL SURVEY REQUIRED]
+
+**Reasoning:** [Explain in 2-3 sentences why this claim should be auto-approved, sent for human review, or require a physical surveyor inspection.]
+
+**Estimated Turnaround:** [X hours/days]
+
+**Notes for Surveyor:** [If human review needed, list 2-3 specific things the surveyor should check, e.g., "Verify impact mechanism", "Check for prior damage", "Request police report if available"]
+
+---
+
+## CRITICAL RULES
+
+1. **Use the 2026 India Repair Cost Reference Data** above for all cost estimates. Do NOT invent numbers.
+
+2. **Physical Measurements Drive Severity:**
+   - Dent depth <5mm + area <100cm² → "minor"
+   - Dent depth 5-20mm + area 100-500cm² → "moderate" or "major"
+   - Dent depth >20mm + area >500cm² → "severe"
+
+3. **Narrative Consistency:**
+   - If user says "minor bump" but dent depth is 25mm → flag as INCONSISTENT
+   - If user says "major accident" but damage is superficial → flag as QUESTIONABLE
+
+4. **Cost Confidence:**
+   - "high" = clear photo, good lighting, damage fully visible
+   - "medium" = some occlusion, moderate lighting
+   - "low" = poor lighting, damage partially hidden, multiple angles needed
+
+5. **Fraud Risk Score:**
+   - 0-20: Low risk (narrative matches damage, no red flags)
+   - 21-50: Medium risk (minor inconsistencies, worth monitoring)
+   - 51-80: High risk (major inconsistencies, route to investigator)
+   - 81-100: Critical risk (obvious fraud, reject claim)
+
+6. **Output Format:** Use clean Markdown formatting (as shown above). No JSON.
+
+7. **Language:** Use professional insurance/automotive terminology (e.g., "PDR" for Paintless Dent Repair, "OEM" for Original Equipment Manufacturer).
+
+---
+
+## EXAMPLE OUTPUT (For Reference Only)
+
+## **Damage Assessment**
+
+**Primary Damage Type:** Dent  
+**Severity:** Major  
+**Confidence:** High  
+**Physical Measurements:** Dent depth 12mm, Damaged area 245cm², Crease angle 35°
+
+---
+
+## **Narrative Consistency Audit**
+
+**User Statement:** "Minor parking lot bump at low speed"
+
+**Physical Plausibility:** Questionable
+
+**Consistency Verdict:** INCONSISTENCY / POTENTIAL FRAUD FLAG
+
+**Reasoning:** User claims "minor bump" but 12mm depth and 35° crease angle suggest higher-impact collision, inconsistent with low-speed parking incident. This level of damage typically requires 30-40 km/h impact speed.
+
+**Fraud Risk Score:** 62 (High risk - major inconsistencies, route to investigator)
+
+---
+
+## **Itemized Repair Cost Estimate (INR ₹)**
+
+Based on 2026 India bodyshop standards:
+
+**1. Body Repair Labor (Denting/PDR):**  
+   - Work: Panel reshaping, crease removal  
+   - Hours: 3.0 hours  
+   - Rate: ₹180/hour  
+   - **Subtotal: ₹540**
+
+**2. Surface Primer & Paint Respray:**  
+   - Work: Primer, base coat, clear coat  
+   - Hours: 2.0 hours  
+   - Rate: ₹180/hour  
+   - **Subtotal: ₹360**
+
+**3. Material Surcharge:**  
+   - Parts/Materials: Primer, paint, consumables  
+   - Quantity: 1  
+   - Unit Cost: ₹200  
+   - **Subtotal: ₹200**
+
+---
+
+### **Total Estimated Repair Cost: ₹1,640**
+
+**Cost Range:** ₹1,400 - ₹1,900 (depending on parts availability, paint quality, shop rates)
+
+**Cost Confidence:** High
+
+---
+
+## **Final Adjuster Recommendation**
+
+**Decision:** HUMAN REVIEW REQUIRED
+
+**Reasoning:** Narrative inconsistency (minor bump vs major dent depth) requires human adjuster investigation before approval. Physical measurements suggest higher-impact collision than claimed.
+
+**Estimated Turnaround:** 24 hours
+
+**Notes for Surveyor:** Verify impact mechanism, check for prior damage, request police report if available
+
+---
+
+Now analyze the provided photo and return the assessment report in the format above.
+"""
+
+    try:
+        if GEMINI_SDK == "genai":
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[
+                    types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
+                    prompt
+                ]
+            )
+            return response.text
+        elif GEMINI_SDK == "legacy":
+            genai_legacy.configure(api_key=api_key)
+            model = genai_legacy.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content([
+                prompt,
+                {'mime_type': 'image/jpeg', 'data': img_bytes}
+            ])
+            return response.text
+    except Exception as e:
+        return f"⚠️ Gemini API Error: {str(e)}"
+
+    return None
+
+
+def build_payload(scenario_label, metrics, decision, mm_per_px, backend_mode, claim_id, panel_type, quality_conf, img_hash, user_narrative, gemini_narrative):
     return {
         "claim_id": claim_id,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "digital_fingerprint": img_hash,
         "photo_quality_score": f"{quality_conf}%",
+        "user_incident_narrative": user_narrative,
         "pipeline": {
             "backend_mode": backend_mode,
             "yolo_2d_detector": "YOLOv8s (CarDD Fine-tuned)" if HAS_YOLO else "Heuristic Edge BBox",
             "geometry_3d_engine": "ClaimPilot Multi-Task CNN" if "LIVE" in backend_mode else "Synthetic Pipeline",
+            "llm_narrative_engine": "Google Gemini 2.5 Flash" if gemini_narrative else "Rule Engine Fallback"
         },
         "scenario": scenario_label,
         "panel_specification": panel_type,
@@ -402,9 +687,10 @@ def build_payload(scenario_label, metrics, decision, mm_per_px, backend_mode, cl
         "decision_engine": {
             "status": decision["status"],
             "recommended_action": decision["action"],
-            "estimated_cost_usd": decision["cost"],
+            "estimated_cost_inr": f"₹{decision['cost']:,}",
             "rule_tier": decision["tier"],
         },
+        "gemini_narrative_analysis": gemini_narrative if gemini_narrative else "No Key Provided"
     }
 
 
@@ -480,16 +766,27 @@ def main():
         st.sidebar.caption("ℹ️ YOLO weights fallback active")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📥 Input Mode")
+    st.sidebar.markdown("### 📥 Input Mode & User Statement")
     mode = st.sidebar.radio("Input Mode", ["Interactive Synthetic Demo", "Custom Upload"], index=0)
 
     uploaded_file = None
     preset = None
+    default_narrative = ""
+
     if mode == "Interactive Synthetic Demo":
         preset = st.sidebar.selectbox("Damage Preset", list(PRESETS.keys()))
         st.sidebar.caption(f"_{PRESETS[preset]['blurb']}_")
+        default_narrative = PRESETS[preset]["narrative"]
     else:
         uploaded_file = st.sidebar.file_uploader("Upload vehicle photo", type=["jpg", "jpeg", "png"])
+        default_narrative = "Reversed into a parking bollard in a shopping mall underground garage."
+
+    user_narrative = st.sidebar.text_area(
+        "Incident Narrative / User Description",
+        value=default_narrative,
+        height=100,
+        help="Policyholder statement describing how the vehicle damage was incurred."
+    )
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🚘 Vehicle Material Multiplier")
@@ -578,7 +875,7 @@ def main():
         st.image(normal_rgb, use_container_width=True)
         st.caption("RGB channels represent XYZ surface normal orientation")
 
-    # ---- Lower Telemetry & Audit Panel -----------------------------------
+    # ---- Lower Telemetry & Decision Panel -----------------------------------
     st.markdown("---")
     st.header("📊 Damage Telemetry & Decision Engine")
 
@@ -595,33 +892,33 @@ def main():
             <span style="color:{status_color}; font-size:24px; font-weight:800;">{decision['status']}</span><br/>
             <span style="font-size:16px; color:#EEE;">
                 Recommended Action: <b>{decision['action']}</b>
-                &nbsp;·&nbsp; Estimated Cost: <b>${decision['cost']:,}</b>
+                &nbsp;·&nbsp;</b>
             </span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 🛠️ Itemized Estimate Breakdown")
-    if decision["status"] == "AUTO-APPROVED":
-        breakdown_data = {
-            "Line Item": ["Body Labor (PDR)", "Paint & Refinish", "Quality Audit", "Total Estimated Cost"],
-            "Hours / Qty": ["2.5 hrs", "1.0 hrs", "0.5 hrs", "-"],
-            "Subtotal": [f"${int(250 * multiplier)}", f"${int(150 * multiplier)}", "$50", f"${decision['cost']}"]
-        }
+    # ---- Gemini AI Analysis Section ---------------------------------------
+    st.markdown("---")
+    st.subheader("🤖 Estimated Repair Cost and Narrative vs Severity Engine")
+
+    gemini_narrative = None
+    if GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE":
+        with st.spinner("Generating Gemini AI narrative audit and INR cost breakdown..."):
+            gemini_narrative = generate_gemini_inr_estimate(bgr_img, metrics, decision, panel_type, user_narrative, GEMINI_API_KEY)
+        
+        if gemini_narrative:
+            st.markdown(gemini_narrative)
     else:
-        breakdown_data = {
-            "Line Item": ["OEM Replacement Panel", "Structural Pull & Alignment", "Paint & Clearcoat", "Total Estimated Cost"],
-            "Hours / Qty": ["1 Unit", "4.0 hrs", "3.0 hrs", "-"],
-            "Subtotal": [f"${int(600 * multiplier)}", f"${int(350 * multiplier)}", f"${int(250 * multiplier)}", f"${decision['cost']}"]
-        }
-    st.table(breakdown_data)
+        st.warning("⚠️ **Gemini API Key missing.** Paste your key into `GEMINI_API_KEY = \"...\"` at line 46 of `app.py` to enable AI analysis.")
 
     claim_id = "CLM-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + \
                hashlib.md5(scenario_label.encode("utf-8")).hexdigest()[:6].upper()
-    payload = build_payload(scenario_label, metrics, decision, mm_per_px, backend_mode, claim_id, panel_type, quality_conf, img_hash)
+    payload = build_payload(scenario_label, metrics, decision, mm_per_px, backend_mode, claim_id, panel_type, quality_conf, img_hash, user_narrative, gemini_narrative)
 
     # ---- Deliverables Tabs ------------------------------------------------
+    st.markdown("---")
     st.markdown("### 🧾 Claim Deliverables")
     tab_json, tab_cert = st.tabs(["JSON API Payload", "Official Claim Certificate"])
 
@@ -635,18 +932,24 @@ def main():
         st.markdown(f"""
         > **CLAIMPILOT OFFICIAL AUDIT CERTIFICATE**  
         > **Claim ID:** `{claim_id}` | **Timestamp:** `{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}`  
-        > **Status:** **{decision['status']}** | **Estimated Cost:** **${decision['cost']:,}**  
+        > **Status:** **{decision['status']}** | **Estimated Cost:** **₹{decision['cost']:,} INR**  
+        > 
+        > **User Incident Statement:**  
+        > *"{user_narrative}"*  
         > 
         > **Deformation Telemetry:**  
-        > * Max Dent Depth: `{metrics['max_depth_mm']} mm`  
+        > * Max Dent Depth ($\Delta Z$): `{metrics['max_depth_mm']} mm`  
         > * Crease Angular Shift: `{metrics['angle_deg']}°`  
         > * Damaged Surface Area: `{metrics['area_cm2']} cm²`  
         > 
         > **Security & Calibration:**  
         > * Digital Fingerprint: `{img_hash}` | EXIF GPS: `Verified`  
         > * Recommended Action: `{decision['action']}` on `{panel_type}`.  
+        > 
+        > **Gemini AI Assessment:**  
+        > {gemini_narrative if gemini_narrative else "Rule Engine Fallback (No API key supplied)"}
         """)
 
 
 if __name__ == "__main__":
-    main()  
+    main()
