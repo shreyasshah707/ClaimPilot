@@ -1,10 +1,12 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
-import { LogOut } from 'lucide-react';
+import { useTheme } from '../../store/themeStore';
+import { LogOut, Sun, Moon } from 'lucide-react';
 
 export const AgentLayout: React.FC = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,21 +17,10 @@ export const AgentLayout: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
-      <header style={{
-        borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-base)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-      }}>
-        <div className="container flex items-center justify-between" style={{ height: '48px' }}>
+      <header className="app-header">
+        <div className="container flex items-center justify-between app-header-inner">
           {/* Wordmark */}
-          <span style={{
-            fontWeight: 700,
-            fontSize: '0.9375rem',
-            letterSpacing: '-0.03em',
-            color: 'var(--text-primary)',
-          }}>
+          <span className="app-wordmark">
             ClaimPilot
           </span>
 
@@ -52,18 +43,24 @@ export const AgentLayout: React.FC = () => {
 
           {/* Right side */}
           <div className="flex items-center gap-md">
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user?.name}</span>
+            <span className="text-sm text-muted">{user?.name}</span>
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+              className="btn-ghost"
+              style={{ padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+            >
+              {theme === 'dark'
+                ? <Sun size={15} style={{ color: 'var(--text-secondary)' }} />
+                : <Moon size={15} style={{ color: 'var(--text-secondary)' }} />
+              }
+            </button>
             <button
               onClick={handleLogout}
-              style={{
-                color: 'var(--text-secondary)',
-                padding: '0.25rem',
-                borderRadius: 'var(--radius-md)',
-                transition: 'color 0.12s',
-              }}
+              className="btn-ghost"
+              style={{ padding: '0.25rem' }}
               title="Sign out"
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
             >
               <LogOut size={15} />
             </button>
@@ -71,8 +68,8 @@ export const AgentLayout: React.FC = () => {
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '2rem 0' }}>
-        <div className="container">
+      <main className="app-main">
+        <div className="app-main-inner">
           <Outlet />
         </div>
       </main>

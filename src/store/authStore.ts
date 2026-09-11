@@ -22,12 +22,14 @@ class AuthStore {
     return this.user;
   }
 
-  login(email: string, name: string) {
+  login(email: string, name: string, phone?: string, dob?: string) {
     const role: Role = email.toLowerCase() === AGENT_EMAIL ? 'agent' : 'customer';
     this.user = {
       id: Math.random().toString(36).substring(7),
       email,
       name,
+      phone,
+      dob,
       role
     };
     localStorage.setItem('auth_user', JSON.stringify(this.user));
@@ -42,7 +44,9 @@ class AuthStore {
 
   subscribe(listener: (user: User | null) => void) {
     this.listeners.add(listener);
-    this.listeners.delete(listener); return undefined;
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   private notify() {
@@ -61,7 +65,7 @@ export function useAuth() {
 
   return {
     user,
-    login: (email: string, name: string) => authStore.login(email, name),
+    login: (email: string, name: string, phone?: string, dob?: string) => authStore.login(email, name, phone, dob),
     logout: () => authStore.logout()
   };
 }

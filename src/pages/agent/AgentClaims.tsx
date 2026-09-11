@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { claimsApi } from '../../services/claimsApi';
 import type { Claim } from '../../types/claim';
 import { Badge } from '../../components/ui/Badge';
 import { Drawer } from '../../components/ui/Drawer';
-import { Search, Filter, AlertTriangle } from 'lucide-react';
+import { Search, AlertTriangle } from 'lucide-react';
+import { useGSAP, animateFadeIn, animateStagger } from '../../lib/gsap';
 
 export const AgentClaims = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -13,6 +14,7 @@ export const AgentClaims = () => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     claimsApi.getClaims().then(data => {
@@ -20,6 +22,19 @@ export const AgentClaims = () => {
       setLoading(false);
     });
   }, []);
+
+  // Header entrance — runs once
+  useGSAP(() => {
+    animateFadeIn('.ac-header', { y: 8, duration: 0.32 });
+    animateFadeIn('.ac-toolbar', { y: 6, duration: 0.3, delay: 0.07 });
+  }, { scope: containerRef });
+
+  // Rows stagger whenever visible list changes
+  useGSAP(() => {
+    if (!loading) {
+      animateStagger('.claim-row', { stagger: 0.03, y: 6, duration: 0.28, delay: 0.04 });
+    }
+  }, { scope: containerRef, dependencies: [loading, activeFilter, searchQuery] });
 
   const getRiskColor = (risk: string) => {
     if (risk === 'High') return 'var(--danger)';
@@ -32,25 +47,25 @@ export const AgentClaims = () => {
     if (searchQuery && !claim.id.toLowerCase().includes(searchQuery.toLowerCase()) && !claim.customerName.toLowerCase().includes(searchQuery.toLowerCase()) && !claim.vehicle.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    
+
     // 2. Tab Filter
     if (activeFilter === 'New') {
-       return new Date(claim.submittedAt).toDateString() === new Date().toDateString();
+      return new Date(claim.submittedAt).toDateString() === new Date().toDateString();
     }
     if (activeFilter === 'Needs Review') {
-       return claim.status === 'Pending Review' || claim.status === 'Decision Pending';
+      return claim.status === 'Pending Review' || claim.status === 'Decision Pending';
     }
     if (activeFilter === 'High Risk') {
-       return claim.fraudRisk === 'High';
+      return claim.fraudRisk === 'High';
     }
     return true; // 'All'
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
-      
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
+
       {/* ── Header ── */}
-      <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
+      <div className="ac-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: '0.25rem' }}>
           All Claims
         </h1>
@@ -60,8 +75,8 @@ export const AgentClaims = () => {
       </div>
 
       {/* ── Toolbar ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        
+      <div className="ac-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
         {/* Filter Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           {['All', 'New', 'Needs Review', 'High Risk'].map((tab) => {
@@ -86,22 +101,19 @@ export const AgentClaims = () => {
           })}
         </div>
 
-        {/* Search & Actions */}
+        {/* Search */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <div style={{ position: 'relative' }}>
             <Search size={14} color="var(--text-secondary)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Search claims..." 
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search claims..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.25rem', paddingTop: '0.375rem', paddingBottom: '0.375rem', fontSize: '0.8125rem', width: '240px' }} 
+              style={{ paddingLeft: '2.25rem', paddingTop: '0.375rem', paddingBottom: '0.375rem', fontSize: '0.8125rem', width: '240px' }}
             />
           </div>
-          <button className="btn-secondary" style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}>
-            <Filter size={14} /> Filter
-          </button>
         </div>
       </div>
 
@@ -126,9 +138,9 @@ export const AgentClaims = () => {
               <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No claims found for this filter.</td></tr>
             ) : (
               filteredClaims.map(claim => (
-                <tr 
-                  key={claim.id} 
-                  className={`interactive-row ${selectedClaim?.id === claim.id ? 'selected-row' : ''}`}
+                <tr
+                  key={claim.id}
+                  className={`interactive-row claim-row ${selectedClaim?.id === claim.id ? 'selected-row' : ''}`}
                   onClick={() => setSelectedClaim(claim)}
                 >
                   <td>
@@ -144,8 +156,8 @@ export const AgentClaims = () => {
                   </td>
                   <td>
                     <Badge variant={
-                      claim.status === 'Approved' ? 'success' : 
-                      claim.status === 'Flagged' || claim.status === 'Rejected' ? 'danger' : 'warning'
+                      claim.status === 'Approved' ? 'success' :
+                        claim.status === 'Flagged' || claim.status === 'Rejected' ? 'danger' : 'warning'
                     }>
                       {claim.status}
                     </Badge>
@@ -166,14 +178,14 @@ export const AgentClaims = () => {
       </div>
 
       {/* ── Quick Preview Drawer ── */}
-      <Drawer 
-        isOpen={!!selectedClaim} 
-        onClose={() => setSelectedClaim(null)} 
+      <Drawer
+        isOpen={!!selectedClaim}
+        onClose={() => setSelectedClaim(null)}
         title={selectedClaim ? `Claim ${selectedClaim.id}` : ''}
       >
         {selectedClaim && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
+
             {/* Header info */}
             <div>
               <p style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
@@ -185,9 +197,9 @@ export const AgentClaims = () => {
             </div>
 
             {/* Evidence Image Placeholder */}
-            <div style={{ 
-              borderRadius: 'var(--radius-md)', 
-              overflow: 'hidden', 
+            <div style={{
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
               border: '1px solid var(--border)',
               backgroundColor: 'var(--bg-hover)',
               height: '240px',
@@ -207,20 +219,20 @@ export const AgentClaims = () => {
             </div>
 
             {/* Quick Stats Box */}
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '0.75rem', 
-              padding: '1.25rem', 
-              backgroundColor: 'var(--bg-surface)', 
-              borderRadius: 'var(--radius-md)', 
-              border: '1px solid var(--border)' 
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              padding: '1.25rem',
+              backgroundColor: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Status</span>
                 <Badge variant={
-                  selectedClaim.status === 'Approved' ? 'success' : 
-                  selectedClaim.status === 'Flagged' ? 'danger' : 'warning'
+                  selectedClaim.status === 'Approved' ? 'success' :
+                    selectedClaim.status === 'Flagged' ? 'danger' : 'warning'
                 }>
                   {selectedClaim.status}
                 </Badge>
@@ -229,8 +241,8 @@ export const AgentClaims = () => {
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   <AlertTriangle size={14} /> Fraud Risk
                 </span>
-                <span style={{ 
-                  fontWeight: 600, 
+                <span style={{
+                  fontWeight: 600,
                   color: getRiskColor(selectedClaim.fraudRisk)
                 }}>
                   {selectedClaim.fraudRisk}
@@ -255,8 +267,8 @@ export const AgentClaims = () => {
 
             {/* Action */}
             <div style={{ marginTop: '1rem' }}>
-              <button 
-                className="btn-primary" 
+              <button
+                className="btn-primary"
                 style={{ width: '100%', padding: '0.75rem' }}
                 onClick={() => navigate(`/agent/claims/${selectedClaim.id}`)}
               >

@@ -34,6 +34,7 @@ export const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/about" element={<Login />} />
         
         {/* Customer Portal */}
         <Route path="/customer" element={
@@ -41,7 +42,7 @@ export const AppRoutes = () => {
             <CustomerLayout />
           </ProtectedRoute>
         }>
-          <Route index element={null} />
+          <Route index element={<CustomerDashboard />} />
           <Route path="claims" element={<MyClaims />} />
           <Route path="new-claim" element={<NewClaim />} />
           <Route path="claims/:id" element={<ClaimAnalysis />} />

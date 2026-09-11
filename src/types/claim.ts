@@ -13,8 +13,17 @@ export interface Claim {
   description: string;
   engineNumber?: string;
   chassisNumber?: string;
+  hsrpNumber?: string;
+  driverLicenseNumber?: string;
+  driverLicensePhoto?: string;
   submittedAt: string;
   status: ClaimStatus;
   images: string[];
+  video?: string;
+  videos?: string[];
   fraudRisk: 'Low' | 'Medium' | 'High';
+  engineerEstimate?: number;
+  approvedAmount?: number;
+  rejectionReason?: string;
+  requestInfoReason?: string;
 }

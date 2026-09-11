@@ -1,19 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { claimsApi } from '../../services/claimsApi';
 import type { Claim } from '../../types/claim';
 import { Badge } from '../../components/ui/Badge';
 import { AlertTriangle, CheckCircle, Clock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
+import { useGSAP, animateStagger } from '../../lib/gsap';
 
 export const AgentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [claims, setClaims] = useState<Claim[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     claimsApi.getClaims().then(setClaims);
   }, []);
+
+  useGSAP(() => {
+    if (claims.length === 0) return;
+    animateStagger('.kpi-card', { stagger: 0.05, y: 10 });
+    animateStagger('.queue-item', { stagger: 0.04, y: 8, delay: 0.08 });
+    animateStagger('.activity-item', { stagger: 0.05, y: 6, delay: 0.12 });
+  }, { scope: containerRef, dependencies: [claims.length] });
 
   const pending   = claims.filter(c => c.status === 'Pending Review' || c.status === 'Decision Pending');
   const highRisk  = claims.filter(c => c.fraudRisk === 'High');
@@ -43,7 +52,7 @@ export const AgentDashboard = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
 
       {/* ── Page header ── */}
       <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
@@ -57,9 +66,9 @@ export const AgentDashboard = () => {
       </div>
 
       {/* ── KPI cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+      <div className="kpi-grid">
         {kpis.map(kpi => (
-          <div key={kpi.label} style={{
+          <div key={kpi.label} className="kpi-card" style={{
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
@@ -84,7 +93,7 @@ export const AgentDashboard = () => {
       </div>
 
       {/* ── Two-column body ── */}
-      <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'flex-start' }}>
+      <div className="dashboard-layout">
 
         {/* Left: Priority Queue */}
         <div style={{ flex: 2, minWidth: 0 }}>
@@ -118,6 +127,7 @@ export const AgentDashboard = () => {
             ) : priorityQueue.map((claim, idx) => (
               <div
                 key={claim.id}
+                className="queue-item"
                 onClick={() => navigate(`/agent/claims/${claim.id}`)}
                 style={{
                   display: 'flex',
@@ -243,7 +253,7 @@ export const AgentDashboard = () => {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
               {activity.map(item => (
-                <div key={item.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div key={item.id} className="activity-item" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                   <div style={{ marginTop: '0.125rem', flexShrink: 0 }}>{item.icon}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.125rem' }}>
