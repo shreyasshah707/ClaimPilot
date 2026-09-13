@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { authStore } from '../store/authStore';
 import { useGSAP, animateFadeIn, animateStagger, isReducedMotion, gsap } from '../lib/gsap';
 import { About } from './About';
+import { AlertCircle } from 'lucide-react';
 
 export type TransitionState = 'idle' | 'enteringAbout' | 'about' | 'returningToLogin';
 
@@ -29,7 +30,7 @@ export const Login: React.FC = () => {
   const logoItemRef = useRef<HTMLDivElement>(null);
   const logoTextRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
-  
+
   // Transition Refs
   const glassRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -58,7 +59,7 @@ export const Login: React.FC = () => {
       top: 0,
       borderRadius: 0,
       backdropFilter: 'blur(32px)',
-      backgroundColor: 'rgba(0,0,0,0.5)', 
+      backgroundColor: 'rgba(0,0,0,0.5)',
       duration: 0.8,
       ease: 'expo.inOut'
     }, 0);
@@ -73,9 +74,9 @@ export const Login: React.FC = () => {
     }, 0);
 
     // 3. Fade in About Page (it is mounted because transitionState='enteringAbout')
-    tl.fromTo('.about-page-container', 
-      { opacity: 0 }, 
-      { opacity: 1, duration: 0.4 }, 
+    tl.fromTo('.about-page-container',
+      { opacity: 0 },
+      { opacity: 1, duration: 0.4 },
       0.4
     );
 
@@ -110,7 +111,7 @@ export const Login: React.FC = () => {
       top: 0,
       borderRadius: 0,
       backdropFilter: 'blur(32px)',
-      backgroundColor: 'rgba(0,0,0,0.5)', 
+      backgroundColor: 'rgba(0,0,0,0.5)',
       duration: 0.8,
       ease: 'expo.inOut'
     }, 0);
@@ -227,11 +228,11 @@ export const Login: React.FC = () => {
       if (transitionState !== 'idle') return;
 
       const target = e.target as HTMLElement;
-      
+
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
-        return; 
+        return;
       }
-      
+
       const isScrollable = (el: HTMLElement): boolean => {
         if (!el || el === document.body || el === document.documentElement) return false;
         const style = window.getComputedStyle(el);
@@ -244,7 +245,7 @@ export const Login: React.FC = () => {
       };
 
       if (isScrollable(target)) {
-        return; 
+        return;
       }
 
       if (e.deltaY > 0) {
@@ -274,53 +275,121 @@ export const Login: React.FC = () => {
     return { label: 'Strong', color: 'var(--success)', width: '100%' };
   };
 
+  // Recognized global email domains
+  const VALID_GLOBAL_EMAIL_DOMAINS = new Set([
+    // Google
+    'gmail.com',
+    'googlemail.com',
+    // Microsoft
+    'outlook.com',
+    'hotmail.com',
+    'live.com',
+    'msn.com',
+    // Yahoo
+    'yahoo.com',
+    'yahoo.co.in',
+    'yahoo.co.uk',
+    'yahoo.ca',
+    'yahoo.fr',
+    'yahoo.de',
+    'ymail.com',
+    // Apple
+    'icloud.com',
+    'me.com',
+    'mac.com',
+    // Proton
+    'proton.me',
+    'protonmail.com',
+    'pm.me',
+    // Zoho
+    'zoho.com',
+    'zoho.in',
+    // AOL
+    'aol.com',
+    // Mail.com & GMX
+    'mail.com',
+    'gmx.com',
+    'gmx.net',
+    // Fastmail & Tuta
+    'fastmail.com',
+    'tutanota.com',
+    'tutamail.com',
+    // Yandex
+    'yandex.com',
+    // System Agent Domain
+    'claimpilot.ai'
+  ]);
+
+  const isValidEmail = (val: string): boolean => {
+    if (!val || typeof val !== 'string') return false;
+    const trimmed = val.trim().toLowerCase();
+    const basicRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!basicRegex.test(trimmed)) return false;
+    if (trimmed.includes('..')) return false;
+
+    const parts = trimmed.split('@');
+    if (parts.length !== 2) return false;
+    const domain = parts[1];
+
+    return VALID_GLOBAL_EMAIL_DOMAINS.has(domain);
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Email Validation (simple regex)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!isSignUp) {
+      // Login validation: Keep all checking parameters, but provide only 1 unified error message
+      const isEmailValid = Boolean(email && isValidEmail(email));
+      const isPasswordValid = Boolean(password && password.length >= 6);
+
+      if (!isEmailValid || !isPasswordValid) {
+        newErrors.auth = 'Invalid EmailID or Password';
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
     }
 
-    // Password Validation
+    // Sign Up validation: detailed field-level error messages
+    if (!email) {
+      newErrors.email = 'Email is required';
+    } else if (!isValidEmail(email)) {
+      newErrors.email = 'Please enter an email from a recognized global provider (e.g. gmail.com, outlook.com, yahoo.com)';
+    }
+
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
-    if (isSignUp) {
-      // Name Validation
-      if (!name.trim()) {
-        newErrors.name = 'Full name is required';
-      }
+    // Name Validation
+    if (!name.trim()) {
+      newErrors.name = 'Full name is required';
+    }
 
-      // DOB Validation
-      if (!dob) {
-        newErrors.dob = 'Date of birth is required';
-      } else {
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          calculatedAge--;
-        }
-        if (calculatedAge < 18) {
-          newErrors.dob = 'You must be 18 or older to register';
-        }
+    // DOB Validation
+    if (!dob) {
+      newErrors.dob = 'Date of birth is required';
+    } else {
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
       }
+      if (calculatedAge < 18) {
+        newErrors.dob = 'You must be 18 or older to register';
+      }
+    }
 
-      // Phone Validation
-      const phoneDigits = phone.replace(/\D/g, '');
-      if (!phone.trim()) {
-        newErrors.phone = 'Phone number is required';
-      } else if (phoneDigits.length < 10) {
-        newErrors.phone = 'Please enter a valid 10-digit phone number';
-      }
+    // Phone Validation
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (phoneDigits.length < 10) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
     setErrors(newErrors);
@@ -345,15 +414,14 @@ export const Login: React.FC = () => {
   // Calculate pill highlight position based on active section
   const navItems = ['hero', 'problem', 'solution', 'team'];
   const activeIndex = navItems.indexOf(activeSection);
-  const pillLeft = `calc(2rem + ${activeIndex * 120}px)`; // Approximation, can be refined
 
   return (
     <>
       {/* Glass Top Bar / Transition Layer */}
       <div ref={glassRef} className="glass-transition-layer">
-        <div className="glass-nav-bar" style={{ 
-          opacity: transitionState === 'idle' ? 1 : (transitionState === 'about' ? 1 : 0), 
-          transition: 'all 0.4s ease', 
+        <div className="glass-nav-bar" style={{
+          opacity: transitionState === 'idle' ? 1 : (transitionState === 'about' ? 1 : 0),
+          transition: 'all 0.4s ease',
           pointerEvents: transitionState === 'about' ? 'auto' : 'none',
           justifyContent: transitionState === 'about' ? 'space-between' : 'center',
           padding: transitionState === 'about' ? '0 2.5rem' : '0'
@@ -367,7 +435,7 @@ export const Login: React.FC = () => {
             <>
               <div className="glass-nav-links">
                 {['ClaimPilot', 'The Problem', 'How it Works', 'Who are We'].map((label, i) => (
-                  <button 
+                  <button
                     key={label}
                     onClick={() => {
                       const id = navItems[i];
@@ -375,10 +443,10 @@ export const Login: React.FC = () => {
                       if (id === 'hero') document.querySelector('.about-page-container')?.scrollTo({ top: 0, behavior: 'smooth' });
                       else el?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    style={{ 
-                      width: '100px', 
-                      textAlign: 'center', 
-                      fontSize: '0.875rem', 
+                    style={{
+                      width: '100px',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
                       fontWeight: 500,
                       color: activeIndex === i ? 'var(--text-primary)' : 'var(--text-secondary)'
                     }}
@@ -386,17 +454,17 @@ export const Login: React.FC = () => {
                     {label}
                   </button>
                 ))}
-                <div 
-                  ref={pillRef} 
-                  className="glass-nav-pill" 
-                  style={{ 
-                    left: `calc(${activeIndex * 140}px)`, 
+                <div
+                  ref={pillRef}
+                  className="glass-nav-pill"
+                  style={{
+                    left: `calc(${activeIndex * 140}px)`,
                     width: '100px',
                     transform: `translateX(0px)`
-                  }} 
+                  }}
                 />
               </div>
-              <button 
+              <button
                 onClick={reverseAboutTransition}
                 className="btn btn-primary"
                 style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: 'var(--radius-md)' }}
@@ -413,287 +481,311 @@ export const Login: React.FC = () => {
       <div
         ref={containerRef}
         className="login-layout"
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        backgroundColor: 'var(--bg-base)',
-      }}
-    >
-      {/* Left Column — Branding */}
-      <div
-        ref={brandingRef}
-        className="login-branding"
         style={{
-          flex: 1,
+          minHeight: '100vh',
           display: 'flex',
-          flexDirection: 'column',
-          padding: '3rem',
-          borderRight: '1px solid var(--border)',
+          backgroundColor: 'var(--bg-base)',
         }}
       >
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div ref={logoItemRef} className="login-branding-item" style={{ marginBottom: '2.5rem' }}>
-            <h1 ref={logoTextRef} style={{
-              fontSize: '3rem',
-              fontWeight: 700,
-              letterSpacing: '-0.04em',
-              color: 'var(--text-primary)',
-              lineHeight: 1,
-              marginBottom: '0.75rem',
-              minHeight: '3rem', // Prevents layout shift when text is deleted
-            }}>
-              ClaimPilot AI
-            </h1>
-            <p style={{
-              fontSize: '1rem',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              letterSpacing: '-0.01em',
-            }}>
-              Claims Operations Platform
-            </p>
+        {/* Left Column — Branding */}
+        <div
+          ref={brandingRef}
+          className="login-branding"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '3rem',
+            borderRight: '1px solid var(--border)',
+          }}
+        >
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div ref={logoItemRef} className="login-branding-item" style={{ marginBottom: '2.5rem' }}>
+              <h1 ref={logoTextRef} style={{
+                fontSize: '3rem',
+                fontWeight: 700,
+                letterSpacing: '-0.04em',
+                color: 'var(--text-primary)',
+                lineHeight: 1,
+                marginBottom: '0.75rem',
+                minHeight: '3rem', // Prevents layout shift when text is deleted
+              }}>
+                ClaimPilot AI
+              </h1>
+              <p style={{
+                fontSize: '1rem',
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+                letterSpacing: '-0.01em',
+              }}>
+                Claims Operations Platform
+              </p>
+            </div>
+
+            <div
+              className="login-branding-item"
+              style={{
+                borderLeft: '1px solid var(--border)',
+                paddingLeft: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+            >
+              {[
+                'AI-POWERED DAMAGE ANALYSIS',
+                'REAL-TIME FRAUD DETECTION',
+                'POLICY LIFECYCLE MANAGEMENT',
+              ].map((feature) => (
+                <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <span style={{
+                    width: '5px',
+                    height: '5px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--accent)',
+                    flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.6875rem',
+                    color: 'var(--text-secondary)',
+                    letterSpacing: '0.06em',
+                  }}>
+                    {feature}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div
-            className="login-branding-item"
-            style={{
-              borderLeft: '1px solid var(--border)',
-              paddingLeft: '1.25rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-            }}
-          >
-            {[
-              'AI-POWERED DAMAGE ANALYSIS',
-              'REAL-TIME FRAUD DETECTION',
-              'POLICY LIFECYCLE MANAGEMENT',
-            ].map((feature) => (
-              <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                <span style={{
-                  width: '5px',
-                  height: '5px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--accent)',
-                  flexShrink: 0,
-                }} />
-                <span style={{
+          <div ref={statusRef} style={{
+            paddingTop: '1.5rem',
+            borderTop: '1px solid var(--border)',
+          }}>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-secondary)', opacity: 0.5 }}>
+              SYSTEM STATUS: <span style={{ color: 'var(--accent)' }}>OPERATIONAL</span>
+            </p>
+            <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-secondary)', opacity: 0.5, marginTop: '0.25rem' }}>
+              SECURE CONNECTION ESTABLISHED
+            </p>
+          </div>
+        </div>
+
+        {/* Right Column — Login Form */}
+        <div
+          ref={formColRef}
+          className="login-form-col"
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '3rem',
+          }}
+        >
+          <div style={{
+            width: '100%',
+            maxWidth: '380px',
+          }}>
+            <div style={{ marginBottom: '2rem' }}>
+              <h2 style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                marginBottom: '0.375rem',
+              }}>
+                {isSignUp ? 'Create an account' : 'Sign in to your account'}
+              </h2>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                {isSignUp
+                  ? 'Enter your details below to register.'
+                  : 'Enter your credentials to access the operations portal.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {errors.auth && (
+                <div style={{
+                  padding: '0.625rem 0.875rem',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid var(--danger)',
+                  color: 'var(--danger)',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  lineHeight: 1.4,
+                }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                  <span>{errors.auth}</span>
+                </div>
+              )}
+
+              {isSignUp && (
+                <>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                      Full Name <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={name}
+                      onChange={(e) => { setName(e.target.value); if (errors.name) setErrors({ ...errors, name: '' }); }}
+                      placeholder="John Doe"
+                      style={{ borderColor: errors.name ? 'var(--danger)' : undefined }}
+                    />
+                    {errors.name && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.name}</p>}
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                      Date of Birth <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={dob}
+                      max={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => { setDob(e.target.value); if (errors.dob) setErrors({ ...errors, dob: '' }); }}
+                      style={{ borderColor: errors.dob ? 'var(--danger)' : undefined, color: dob ? 'inherit' : 'var(--text-muted)' }}
+                    />
+                    {errors.dob && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.dob}</p>}
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                  Email address {isSignUp && <span style={{ color: 'var(--danger)' }}>*</span>}
+                </label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email || errors.auth) setErrors({ ...errors, email: '', auth: '' });
+                  }}
+                  placeholder="agent@claimpilot.ai"
+                  style={{ borderColor: (errors.email || errors.auth) ? 'var(--danger)' : undefined }}
+                />
+                {errors.email && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.email}</p>}
+              </div>
+
+              {isSignUp && (
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                    Phone number <span style={{ color: 'var(--danger)' }}>*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    value={phone}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/[^\d+\-\s()]/g, '');
+                      setPhone(cleaned);
+                      if (errors.phone) setErrors({ ...errors, phone: '' });
+                    }}
+                    placeholder="+91 98765 43210"
+                    style={{ borderColor: errors.phone ? 'var(--danger)' : undefined }}
+                  />
+                  {errors.phone && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.phone}</p>}
+                </div>
+              )}
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                  Password {isSignUp && <span style={{ color: 'var(--danger)' }}>*</span>}
+                </label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password || errors.auth) setErrors({ ...errors, password: '', auth: '' });
+                  }}
+                  placeholder="••••••••"
+                  style={{ borderColor: (errors.password || errors.auth) ? 'var(--danger)' : undefined }}
+                />
+                {errors.password && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.password}</p>}
+
+                {isSignUp && password.length > 0 && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>Password strength</span>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: strength.color }}>{strength.label}</span>
+                    </div>
+                    <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--bg-hover)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: strength.width,
+                        backgroundColor: strength.color,
+                        height: '100%',
+                        transition: 'all 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem', fontWeight: 600 }}
+              >
+                {isSignUp ? 'Create Account' : 'Sign In'}
+              </button>
+            </form>
+
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+                <button
+                  onClick={() => { setIsSignUp(!isSignUp); setErrors({}); }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '4px'
+                  }}
+                >
+                  {isSignUp ? 'Sign in' : 'Sign up'}
+                </button>
+              </p>
+            </div>
+
+            {!isSignUp && (
+              <div style={{
+                marginTop: '2rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid var(--border)',
+              }}>
+                <p style={{
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.6875rem',
                   color: 'var(--text-secondary)',
-                  letterSpacing: '0.06em',
+                  letterSpacing: '0.01em',
+                  marginBottom: '0.375rem',
                 }}>
-                  {feature}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div ref={statusRef} style={{
-          paddingTop: '1.5rem',
-          borderTop: '1px solid var(--border)',
-        }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-secondary)', opacity: 0.5 }}>
-            SYSTEM STATUS: <span style={{ color: 'var(--accent)' }}>OPERATIONAL</span>
-          </p>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.625rem', color: 'var(--text-secondary)', opacity: 0.5, marginTop: '0.25rem' }}>
-            SECURE CONNECTION ESTABLISHED
-          </p>
-        </div>
-      </div>
-
-      {/* Right Column — Login Form */}
-      <div
-        ref={formColRef}
-        className="login-form-col"
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '3rem',
-        }}
-      >
-        <div style={{
-          width: '100%',
-          maxWidth: '380px',
-        }}>
-          <div style={{ marginBottom: '2rem' }}>
-            <h2 style={{
-              fontSize: '1.25rem',
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              marginBottom: '0.375rem',
-            }}>
-              {isSignUp ? 'Create an account' : 'Sign in to your account'}
-            </h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              {isSignUp
-                ? 'Enter your details below to register.'
-                : 'Enter your credentials to access the operations portal.'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {isSignUp && (
-              <>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                    Full Name <span style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={name}
-                    onChange={(e) => { setName(e.target.value); if (errors.name) setErrors({ ...errors, name: '' }); }}
-                    placeholder="John Doe"
-                    style={{ borderColor: errors.name ? 'var(--danger)' : undefined }}
-                  />
-                  {errors.name && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.name}</p>}
-                </div>
-
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                    Date of Birth <span style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={dob}
-                    max={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => { setDob(e.target.value); if (errors.dob) setErrors({ ...errors, dob: '' }); }}
-                    style={{ borderColor: errors.dob ? 'var(--danger)' : undefined, color: dob ? 'inherit' : 'var(--text-muted)' }}
-                  />
-                  {errors.dob && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.dob}</p>}
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                Email address {isSignUp && <span style={{ color: 'var(--danger)' }}>*</span>}
-              </label>
-              <input
-                type="email"
-                className="form-input"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors({ ...errors, email: '' }); }}
-                placeholder="agent@claimpilot.ai"
-                style={{ borderColor: errors.email ? 'var(--danger)' : undefined }}
-              />
-              {errors.email && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.email}</p>}
-            </div>
-
-            {isSignUp && (
-              <div>
-                <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  Phone number <span style={{ color: 'var(--danger)' }}>*</span>
-                </label>
-                <input
-                  type="tel"
-                  className="form-input"
-                  value={phone}
-                  onChange={(e) => {
-                    const cleaned = e.target.value.replace(/[^\d+\-\s()]/g, '');
-                    setPhone(cleaned);
-                    if (errors.phone) setErrors({ ...errors, phone: '' });
-                  }}
-                  placeholder="+91 98765 43210"
-                  style={{ borderColor: errors.phone ? 'var(--danger)' : undefined }}
-                />
-                {errors.phone && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.phone}</p>}
+                  DEMO CREDENTIALS
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Agent: <span style={{ color: 'var(--text-primary)' }}>agent@claimpilot.ai</span>
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                  Customer: <span style={{ color: 'var(--text-primary)' }}>any other email</span>
+                </p>
               </div>
             )}
-
-            <div>
-              <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                Password {isSignUp && <span style={{ color: 'var(--danger)' }}>*</span>}
-              </label>
-              <input
-                type="password"
-                className="form-input"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({ ...errors, password: '' }); }}
-                placeholder="••••••••"
-                style={{ borderColor: errors.password ? 'var(--danger)' : undefined }}
-              />
-              {errors.password && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.password}</p>}
-
-              {isSignUp && password.length > 0 && (
-                <div style={{ marginTop: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>Password strength</span>
-                    <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: strength.color }}>{strength.label}</span>
-                  </div>
-                  <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--bg-hover)', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{
-                      width: strength.width,
-                      backgroundColor: strength.color,
-                      height: '100%',
-                      transition: 'all 0.3s ease'
-                    }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem', fontWeight: 600 }}
-            >
-              {isSignUp ? 'Create Account' : 'Sign In'}
-            </button>
-          </form>
-
-          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-              <button
-                onClick={() => { setIsSignUp(!isSignUp); setErrors({}); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: 0,
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '4px'
-                }}
-              >
-                {isSignUp ? 'Sign in' : 'Sign up'}
-              </button>
-            </p>
           </div>
-
-          {!isSignUp && (
-            <div style={{
-              marginTop: '2rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--border)',
-            }}>
-              <p style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.6875rem',
-                color: 'var(--text-secondary)',
-                letterSpacing: '0.01em',
-                marginBottom: '0.375rem',
-              }}>
-                DEMO CREDENTIALS
-              </p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Agent: <span style={{ color: 'var(--text-primary)' }}>agent@claimpilot.ai</span>
-              </p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                Customer: <span style={{ color: 'var(--text-primary)' }}>any other email</span>
-              </p>
-            </div>
-          )}
         </div>
       </div>
-    </div>
     </>
   );
 };

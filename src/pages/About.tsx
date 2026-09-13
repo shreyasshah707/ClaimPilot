@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useGSAP } from '../lib/gsap';
+import React, { useEffect, useRef } from 'react';
 
 interface AboutProps {
   onReturn: () => void;
@@ -9,15 +8,6 @@ interface AboutProps {
 
 export const About: React.FC<AboutProps> = ({ onReturn, isVisible, onSectionChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState('hero');
-
-  // Navigation Items
-  const navItems = [
-    { id: 'hero', label: 'ClaimPilot' },
-    { id: 'problem', label: 'The Problem' },
-    { id: 'solution', label: 'How it Works' },
-    { id: 'team', label: 'Who are We' },
-  ];
 
   // Set up Intersection Observer for sections
   useEffect(() => {
@@ -27,7 +17,6 @@ export const About: React.FC<AboutProps> = ({ onReturn, isVisible, onSectionChan
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
             onSectionChange?.(entry.target.id);
           }
         });
@@ -42,17 +31,7 @@ export const About: React.FC<AboutProps> = ({ onReturn, isVisible, onSectionChan
     sections?.forEach((section) => observer.observe(section));
 
     return () => observer.disconnect();
-  }, [isVisible]);
-
-  // Scroll to section handler
-  const scrollToSection = (id: string) => {
-    if (id === 'hero') {
-      containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    const element = containerRef.current?.querySelector(`#${id}`);
-    element?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [isVisible, onSectionChange]);
 
   return (
     <div

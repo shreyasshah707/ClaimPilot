@@ -231,16 +231,6 @@
     inset 0 -1px 1px rgba(0, 0, 0, 0.2);
 }
 
-/* Agent header */
-[data-theme="dark"] .app-header {
-  background: rgba(12, 12, 12, 0.82);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow:
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
-    0 2px 16px rgba(0, 0, 0, 0.5);
-}
 
 /* Modals */
 [data-theme="dark"] .modal-overlay {
@@ -885,38 +875,6 @@ h6 {
   border-bottom: 1px solid var(--border);
 }
 
-/* ============================================================
-   APP HEADER — sticky top bar for agent layout
-   ============================================================ */
-.app-header {
-  border-bottom: 1px solid var(--border);
-  background-color: var(--bg-base);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.app-header-inner {
-  height: 48px;
-}
-
-.app-wordmark {
-  font-weight: 700;
-  font-size: 0.9375rem;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-}
-
-.app-main {
-  flex: 1;
-  padding: 1.5rem 1rem;
-}
-
-.app-main-inner {
-  max-width: 1720px;
-  margin: 0 auto;
-  width: 100%;
-}
 
 /* ============================================================
    SIDEBAR — customer layout
@@ -1226,68 +1184,6 @@ h6 {
   max-width: 900px;
 }
 
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
-.nav-link {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  padding: 0.375rem 0;
-  border-bottom: 2px solid transparent;
-  transition: color 0.12s, border-color 0.12s;
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  color: var(--text-primary);
-  text-decoration: none;
-}
-
-.nav-link.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent);
-}
-
-/* ============================================================
-   TABS — used in AgentClaimDetails
-   ============================================================ */
-.tab-nav {
-  display: flex;
-  gap: var(--space-md);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 1.5rem;
-}
-
-.tab-btn {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  padding: 0.5rem 0.25rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  transition: color 0.12s, border-color 0.12s;
-}
-
-.tab-btn:hover {
-  color: var(--text-primary);
-}
-
-.tab-btn.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent);
-}
-
-.tab-btn.active.tab-danger {
-  color: var(--danger);
-  border-bottom-color: var(--danger);
-}
 
 /* ============================================================
    CARDS & SURFACES
@@ -1429,55 +1325,6 @@ a.btn-ghost:hover {
   background-color: var(--bg-hover);
 }
 
-/* Agent claim decision action buttons with smooth curved edges */
-.agent-action-btn {
-  border-radius: 9999px;
-  padding: 0.4375rem 1.125rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-}
-
-.agent-action-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.agent-action-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.agent-action-btn.btn-danger {
-  background-color: var(--danger-bg);
-  border-color: var(--danger-border);
-  color: var(--danger);
-}
-
-.agent-action-btn.btn-danger:hover:not(:disabled) {
-  background-color: rgba(220, 38, 38, 0.16);
-  border-color: var(--danger);
-}
-
-.agent-action-btn.btn-success {
-  background-color: var(--success);
-  border-color: transparent;
-  color: var(--text-inverse);
-}
-
-.agent-action-btn.btn-success:hover:not(:disabled) {
-  background-color: #047857;
-}
-
-.agent-action-btn.btn-secondary {
-  background-color: var(--bg-surface);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-
-.agent-action-btn.btn-secondary:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-}
-
 /* Focus-visible for all button variants */
 .btn:focus-visible,
 .btn-primary:focus-visible,
@@ -1485,8 +1332,7 @@ a.btn-ghost:hover {
 .btn-success:focus-visible,
 .btn-secondary:focus-visible,
 .btn-danger:focus-visible,
-.btn-ghost:focus-visible,
-.agent-action-btn:focus-visible {
+.btn-ghost:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1574,63 +1420,6 @@ a.btn-ghost:hover {
   border-color: var(--neutral-border);
 }
 
-/* ============================================================
-   TABLES — dense and enterprise
-   ============================================================ */
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background-color: var(--bg-surface);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-}
-
-th {
-  padding: 0.5625rem 1rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  background-color: var(--bg-base);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-td {
-  padding: 0.6875rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-tr:last-child td {
-  border-bottom: none;
-}
-
-tr.interactive-row {
-  cursor: pointer;
-  transition: background-color 0.1s;
-}
-
-tr.interactive-row:hover {
-  background-color: var(--bg-hover);
-}
-
-tr.selected-row {
-  background-color: var(--accent-dim);
-}
-
-tr.selected-row:hover {
-  background-color: rgba(5, 150, 105, 0.16);
-}
 
 /* ============================================================
    INTERACTIVE ROW (non-table)
@@ -1644,43 +1433,6 @@ tr.selected-row:hover {
   background-color: var(--bg-hover);
 }
 
-/* ============================================================
-   DRAWER
-   ============================================================ */
-.drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  z-index: 40;
-  backdrop-filter: blur(2px);
-}
-
-.drawer-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 500px;
-  background-color: var(--bg-surface);
-  border-left: 1px solid var(--border);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-xl);
-  animation: slideIn 0.2s ease-out forwards;
-}
-
-.drawer-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-}
 
 /* ============================================================
    ANIMATIONS
@@ -1726,31 +1478,8 @@ tr.selected-row:hover {
 }
 
 /* ============================================================
-   RESPONSIVE BREAKPOINTS & DASHBOARD LAYOUTS
+   CLIENT & AUTH RESPONSIVE BREAKPOINTS
    ============================================================ */
-
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
-.dashboard-layout {
-  display: flex;
-  gap: 1.75rem;
-  align-items: flex-start;
-}
-
-/* Medium screens: wrap KPI grid & stack dashboard layout */
-@media (max-width: 900px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .dashboard-layout {
-    flex-direction: column;
-  }
-}
 
 /* Small screens / mobile */
 @media (max-width: 768px) {
@@ -1780,12 +1509,6 @@ tr.selected-row:hover {
     margin: 0.5rem;
     padding: 0 1.25rem;
     height: 56px;
-  }
-}
-
-@media (max-width: 480px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
   }
 }
 

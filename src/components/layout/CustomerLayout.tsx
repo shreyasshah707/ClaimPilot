@@ -5,9 +5,9 @@ import { useTheme } from '../../store/themeStore';
 import { claimsApi } from '../../services/claimsApi';
 import type { Claim } from '../../types/claim';
 import { Badge } from '../ui/Badge';
-import { LogOut, Plus, ChevronDown, ChevronRight, Sun, Moon } from 'lucide-react';
+import { LogOut, Plus, ChevronDown, Sun, Moon } from 'lucide-react';
 import { TopBar } from './TopBar';
-import { useGSAP, animateFadeIn, animateStagger } from '../../lib/gsap';
+import { gsap, useGSAP, animateFadeIn, animateStagger, isReducedMotion } from '../../lib/gsap';
 
 export const CustomerLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -16,6 +16,9 @@ export const CustomerLayout: React.FC = () => {
   const location = useLocation();
   const [claims, setClaims] = useState<Claim[]>([]);
   const homeRef = useRef<HTMLDivElement>(null);
+  const claimsListRef = useRef<HTMLDivElement>(null);
+  const chevronRef = useRef<HTMLDivElement>(null);
+  const isFirstMount = useRef(true);
 
   const isHome = location.pathname === '/customer';
   const [claimsMinimized, setClaimsMinimized] = useState(false);
@@ -31,6 +34,101 @@ export const CustomerLayout: React.FC = () => {
       animateStagger('.customer-quick-card', { stagger: 0.06, y: 10, delay: 0.1 });
     }
   }, { scope: homeRef, dependencies: [isHome] });
+
+  useGSAP(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    const listEl = claimsListRef.current;
+    const chevronEl = chevronRef.current;
+    if (!listEl) return;
+
+    if (isReducedMotion()) {
+      if (claimsMinimized) {
+        listEl.style.display = 'none';
+        if (chevronEl) chevronEl.style.transform = 'rotate(-90deg)';
+      } else {
+        listEl.style.display = 'flex';
+        listEl.style.flex = '1';
+        listEl.style.height = '';
+        listEl.style.opacity = '1';
+        if (chevronEl) chevronEl.style.transform = 'rotate(0deg)';
+      }
+      return;
+    }
+
+    gsap.killTweensOf(listEl);
+    if (chevronEl) gsap.killTweensOf(chevronEl);
+
+    if (claimsMinimized) {
+      if (chevronEl) {
+        gsap.to(chevronEl, {
+          rotation: -90,
+          duration: 0.28,
+          ease: 'power2.inOut',
+        });
+      }
+
+      const startHeight = listEl.offsetHeight;
+      listEl.style.flex = 'none';
+      listEl.style.height = `${startHeight}px`;
+
+      gsap.to(listEl, {
+        height: 0,
+        opacity: 0,
+        duration: 0.28,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          listEl.style.display = 'none';
+        },
+      });
+    } else {
+      if (chevronEl) {
+        gsap.to(chevronEl, {
+          rotation: 0,
+          duration: 0.3,
+          ease: 'power2.out',
+        });
+      }
+
+      listEl.style.display = 'flex';
+      listEl.style.flex = 'none';
+      listEl.style.height = 'auto';
+      const targetHeight = listEl.scrollHeight;
+      listEl.style.height = '0px';
+      listEl.style.opacity = '0';
+
+      gsap.to(listEl, {
+        height: targetHeight,
+        opacity: 1,
+        duration: 0.32,
+        ease: 'power2.out',
+        onComplete: () => {
+          listEl.style.flex = '1';
+          listEl.style.height = '';
+        },
+      });
+
+      const claimItems = listEl.querySelectorAll('.sidebar-claim-link');
+      if (claimItems.length > 0) {
+        gsap.fromTo(
+          claimItems,
+          { opacity: 0, y: -6 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.22,
+            stagger: 0.035,
+            delay: 0.05,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity',
+          }
+        );
+      }
+    }
+  }, [claimsMinimized]);
 
   const handleLogout = () => {
     logout();
@@ -76,15 +174,46 @@ export const CustomerLayout: React.FC = () => {
           <div className="sidebar-claims">
             <div
               className="sidebar-section-header"
-              onClick={() => setClaimsMinimized(!claimsMinimized)}
+              onClick={() => setClaimsMinimized(prev => !prev)}
+              role="button"
+              tabIndex={0}
+              aria-expanded={!claimsMinimized}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setClaimsMinimized(prev => !prev);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
             >
               <p className="sidebar-section-label">
                 Past Claims
               </p>
-              {claimsMinimized ? <ChevronRight size={14} color="var(--text-secondary)" /> : <ChevronDown size={14} color="var(--text-secondary)" />}
+              <div
+                ref={chevronRef}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transformOrigin: '50% 50%',
+                  willChange: 'transform',
+                }}
+              >
+                <ChevronDown size={14} color="var(--text-secondary)" />
+              </div>
             </div>
 
-            {!claimsMinimized && (
+            <div
+              ref={claimsListRef}
+              className="sidebar-claims-list-wrapper"
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               <div className="sidebar-claims-list">
                 {claims.length === 0 ? (
                   <p style={{
@@ -120,7 +249,7 @@ export const CustomerLayout: React.FC = () => {
                   })
                 )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* User footer */}

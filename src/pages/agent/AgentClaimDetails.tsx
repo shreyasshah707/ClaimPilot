@@ -7,7 +7,7 @@ import type { DamageAnalysis, FraudAnalysis, DamageArea } from '../../types/anal
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { DamageViewer } from '../../components/ui/DamageViewer';
-import { ArrowLeft, User, Phone, CheckCircle, XCircle, AlertTriangle, ShieldCheck, Box } from 'lucide-react';
+import { ArrowLeft, User, Phone, CheckCircle, XCircle, AlertTriangle, ShieldCheck, Box, Clock } from 'lucide-react';
 import { advancedAnalysisApi, AdvancedAnalysisData } from '../../services/advancedAnalysisApi';
 import { InputComparison } from '../../components/analysis/InputComparison';
 import { DamageSegmentation } from '../../components/analysis/DamageSegmentation';
@@ -123,10 +123,21 @@ export const AgentClaimDetails = () => {
   const submitAction = async (status: Claim['status'], additionalData?: Partial<Claim>) => {
     if (!claim) return;
     setLoading(true);
-    await claimsApi.updateClaimStatus(claim.id, status, additionalData);
+    await claimsApi.updateClaimStatus(claim.id, status, {
+      ...additionalData,
+      reviewedByAgent: true,
+      reviewedAt: new Date().toISOString()
+    });
     setLoading(false);
     navigate('/agent/claims');
   };
+
+  const isClaimDecided = Boolean(
+    claim?.status === 'Approved' ||
+    claim?.status === 'Rejected' ||
+    claim?.requestInfoReason ||
+    claim?.agentAction === 'More Info Requested'
+  );
 
   if (loading) return <div className="text-muted p-xl text-center">Loading workspace...</div>;
   if (!claim) return <div className="text-muted p-xl text-center">Claim not found.</div>;
@@ -147,17 +158,37 @@ export const AgentClaimDetails = () => {
             <p className="text-muted text-sm mt-1">{claim.vehicle} • Submitted {new Date(claim.submittedAt).toLocaleDateString()}</p>
           </div>
         </div>
-        <div className="flex gap-sm">
-          <button className="btn-secondary agent-action-btn" onClick={() => setShowRequestInfoModal(true)}>
-            Request Info
-          </button>
-          <button className="btn-danger agent-action-btn" onClick={() => setShowRejectModal(true)}>
-            <XCircle size={16} /> Reject
-          </button>
-          <button className="btn-success agent-action-btn" onClick={() => setShowApproveModal(true)}>
-            <CheckCircle size={16} /> Approve
-          </button>
-        </div>
+        {!isClaimDecided ? (
+          <div className="flex gap-sm">
+            <button className="btn-secondary agent-action-btn" onClick={() => setShowRequestInfoModal(true)}>
+              Request Info
+            </button>
+            <button className="btn-danger agent-action-btn" onClick={() => setShowRejectModal(true)}>
+              <XCircle size={16} /> Reject
+            </button>
+            <button className="btn-success agent-action-btn" onClick={() => setShowApproveModal(true)}>
+              <CheckCircle size={16} /> Approve
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-sm">
+            {claim.status === 'Approved' && (
+              <Badge variant="success" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <CheckCircle size={16} /> Approved {claim.approvedAmount ? `· ₹${claim.approvedAmount.toLocaleString()}` : ''}
+              </Badge>
+            )}
+            {claim.status === 'Rejected' && (
+              <Badge variant="danger" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <XCircle size={16} /> Claim Rejected
+              </Badge>
+            )}
+            {claim.status !== 'Approved' && claim.status !== 'Rejected' && claim.requestInfoReason && (
+              <Badge variant="warning" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <Clock size={16} /> More Info Requested
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-xl">
@@ -196,7 +227,41 @@ export const AgentClaimDetails = () => {
           {/* Tab Content */}
           <div ref={tabPaneRef} key={activeTab}>
             {activeTab === 'overview' && (
-              <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
+              <div className="flex flex-col gap-md">
+                {isClaimDecided && (
+                  <div style={{
+                    padding: '1rem 1.25rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: claim.status === 'Approved' ? '1px solid var(--success)' : claim.status === 'Rejected' ? '1px solid var(--danger)' : '1px solid var(--warning)',
+                    backgroundColor: claim.status === 'Approved' ? 'rgba(34, 197, 94, 0.06)' : claim.status === 'Rejected' ? 'rgba(239, 68, 68, 0.06)' : 'rgba(234, 179, 8, 0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.375rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.875rem', color: claim.status === 'Approved' ? 'var(--success)' : claim.status === 'Rejected' ? 'var(--danger)' : 'var(--warning)' }}>
+                      {claim.status === 'Approved' && <><CheckCircle size={16} /> Claim Approved</>}
+                      {claim.status === 'Rejected' && <><XCircle size={16} /> Claim Rejected</>}
+                      {claim.status !== 'Approved' && claim.status !== 'Rejected' && claim.requestInfoReason && <><Clock size={16} /> Additional Information Requested</>}
+                    </div>
+                    {claim.status === 'Approved' && (
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                        Approved Payout: <strong>₹{claim.approvedAmount?.toLocaleString() || 'N/A'}</strong>
+                        {claim.engineerEstimate ? ` · Engineer Estimate: ₹${claim.engineerEstimate.toLocaleString()}` : ''}
+                      </p>
+                    )}
+                    {claim.status === 'Rejected' && claim.rejectionReason && (
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                        <strong>Rejection Reason:</strong> {claim.rejectionReason}
+                      </p>
+                    )}
+                    {claim.requestInfoReason && (
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                        <strong>Required Information:</strong> {claim.requestInfoReason}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
                 <Card style={{ flex: 1, minWidth: '250px' }}>
                   <h3 className="text-sm text-muted uppercase font-bold flex items-center gap-sm mb-4"><User size={14} /> Customer</h3>
                   <div className="flex flex-col gap-sm text-sm">
@@ -280,6 +345,7 @@ export const AgentClaimDetails = () => {
                   )}
                 </Card>
               </div>
+            </div>
             )}
 
             {activeTab === 'damage' && (
@@ -586,7 +652,7 @@ export const AgentClaimDetails = () => {
                 type="button"
                 className="btn-success"
                 disabled={!isApproveValid}
-                onClick={() => submitAction('Approved', { engineerEstimate: Number(engineerEstimate), approvedAmount: Number(approvedAmount) })}
+                onClick={() => submitAction('Approved', { engineerEstimate: Number(engineerEstimate), approvedAmount: Number(approvedAmount), agentAction: 'Approved' })}
                 style={{
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-sm)',
@@ -636,7 +702,7 @@ export const AgentClaimDetails = () => {
                 type="button"
                 className="btn-danger"
                 disabled={!isRejectValid}
-                onClick={() => submitAction('Rejected', { rejectionReason: rejectionReason.trim() })}
+                onClick={() => submitAction('Rejected', { rejectionReason: rejectionReason.trim(), agentAction: 'Rejected' })}
                 style={{
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-sm)',
@@ -686,7 +752,7 @@ export const AgentClaimDetails = () => {
                 type="button"
                 className="btn-primary"
                 disabled={!isRequestInfoValid}
-                onClick={() => submitAction('Under Review', { requestInfoReason: requestInfoReason.trim() })}
+                onClick={() => submitAction('Under Review', { requestInfoReason: requestInfoReason.trim(), agentAction: 'More Info Requested' })}
                 style={{
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-sm)',

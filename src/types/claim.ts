@@ -26,4 +26,7 @@ export interface Claim {
   approvedAmount?: number;
   rejectionReason?: string;
   requestInfoReason?: string;
+  reviewedByAgent?: boolean;
+  reviewedAt?: string;
+  agentAction?: 'Approved' | 'Rejected' | 'More Info Requested';
 }

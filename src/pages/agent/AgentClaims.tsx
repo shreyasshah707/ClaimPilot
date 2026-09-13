@@ -58,6 +58,18 @@ export const AgentClaims = () => {
     if (activeFilter === 'High Risk') {
       return claim.fraudRisk === 'High';
     }
+    if (activeFilter === 'Approved') {
+      return claim.status === 'Approved';
+    }
+    if (activeFilter === 'Reviewed Claims') {
+      return Boolean(
+        claim.reviewedByAgent ||
+        claim.status === 'Approved' ||
+        claim.status === 'Rejected' ||
+        claim.requestInfoReason ||
+        claim.agentAction
+      );
+    }
     return true; // 'All'
   });
 
@@ -75,11 +87,11 @@ export const AgentClaims = () => {
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="ac-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="ac-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
 
         {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {['All', 'New', 'Needs Review', 'High Risk'].map((tab) => {
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {['All', 'New', 'Needs Review', 'High Risk', 'Approved', 'Reviewed Claims'].map((tab) => {
             const isActive = tab === activeFilter;
             return (
               <button
@@ -232,11 +244,29 @@ export const AgentClaims = () => {
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Status</span>
                 <Badge variant={
                   selectedClaim.status === 'Approved' ? 'success' :
-                    selectedClaim.status === 'Flagged' ? 'danger' : 'warning'
+                    selectedClaim.status === 'Flagged' || selectedClaim.status === 'Rejected' ? 'danger' : 'warning'
                 }>
                   {selectedClaim.status}
                 </Badge>
               </div>
+              {selectedClaim.approvedAmount && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Approved Payout</span>
+                  <span style={{ fontWeight: 600, color: 'var(--success)', fontSize: '0.875rem' }}>
+                    ₹{selectedClaim.approvedAmount.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {selectedClaim.rejectionReason && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--danger)', padding: '0.5rem', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                  <strong>Rejection Reason:</strong> {selectedClaim.rejectionReason}
+                </div>
+              )}
+              {selectedClaim.requestInfoReason && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--warning)', padding: '0.5rem', backgroundColor: 'rgba(234, 179, 8, 0.08)', borderRadius: 'var(--radius-sm)' }}>
+                  <strong>More Info Requested:</strong> {selectedClaim.requestInfoReason}
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   <AlertTriangle size={14} /> Fraud Risk

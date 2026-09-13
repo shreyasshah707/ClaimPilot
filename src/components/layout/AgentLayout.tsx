@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { useTheme } from '../../store/themeStore';
 import { LogOut, Sun, Moon } from 'lucide-react';
+import '../../agent.css';
 
 export const AgentLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -16,7 +17,7 @@ export const AgentLayout: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
+    <div className="agent-layout" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
       <header className="app-header">
         <div className="container flex items-center justify-between app-header-inner">
           {/* Wordmark */}
