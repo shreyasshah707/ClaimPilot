@@ -23,6 +23,15 @@ export const Login: React.FC = () => {
   // Error States
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // OTP State
+  const [showOtp, setShowOtp] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpError, setOtpError] = useState(false);
+  const [resendTimer, setResendTimer] = useState(42);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otpModalRef = useRef<HTMLDivElement>(null);
+  const otpContentRef = useRef<HTMLDivElement>(null);
+
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const brandingRef = useRef<HTMLDivElement>(null);
@@ -36,6 +45,16 @@ export const Login: React.FC = () => {
   const pillRef = useRef<HTMLDivElement>(null);
 
   // Page entrance — runs once on mount
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (showOtp && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showOtp, resendTimer]);
+
   const { contextSafe } = useGSAP(() => {
     animateStagger('.login-branding-item', { stagger: 0.07, y: 10, duration: 0.38 });
     animateFadeIn(formColRef.current, { y: 12, duration: 0.4, delay: 0.1 });
@@ -261,6 +280,76 @@ export const Login: React.FC = () => {
     };
   }, [transitionState, startAboutTransition]);
 
+  const verifyOtp = contextSafe(() => {
+    const enteredOtp = otp.join('');
+    // TODO: Remove demo OTP and replace with backend OTP verification before production.
+    if (enteredOtp === '000000') {
+      if (isReducedMotion()) {
+        setShowOtp(false);
+        authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
+        startTransition('customer');
+        return;
+      }
+
+      // Smoothly animate away the modal
+      if (otpContentRef.current) {
+        gsap.to(otpContentRef.current, { scale: 0.95, opacity: 0, duration: 0.3, ease: 'power2.in' });
+      }
+      
+      if (otpModalRef.current) {
+        gsap.to(otpModalRef.current, {
+          opacity: 0,
+          duration: 0.3,
+          delay: 0.1,
+          ease: 'power2.in',
+          onComplete: () => {
+            setShowOtp(false);
+            authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
+            
+            // Add a slight pause before starting the login animation
+            setTimeout(() => {
+              startTransition('customer');
+            }, 300);
+          }
+        });
+      } else {
+        setShowOtp(false);
+        authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
+        startTransition('customer');
+      }
+    } else {
+      setOtpError(true);
+    }
+  });
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) {
+      const pasted = value.slice(0, 6).split('');
+      const newOtp = [...otp];
+      pasted.forEach((char, i) => {
+        if (index + i < 6) newOtp[index + i] = char;
+      });
+      setOtp(newOtp);
+      const nextIndex = Math.min(index + pasted.length, 5);
+      otpRefs.current[nextIndex]?.focus();
+      return;
+    }
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    setOtpError(false);
+
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
   // Utility to check password strength
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { label: '', color: 'transparent', width: '0%' };
@@ -340,10 +429,12 @@ export const Login: React.FC = () => {
     if (!isSignUp) {
       // Login validation: Keep all checking parameters, but provide only 1 unified error message
       const isEmailValid = Boolean(email && isValidEmail(email));
+      const isPhoneValid = /^\d{10}$/.test(email.replace(/\D/g, ''));
+      const isIdentifierValid = Boolean(email && (isEmailValid || isPhoneValid));
       const isPasswordValid = Boolean(password && password.length >= 6);
 
-      if (!isEmailValid || !isPasswordValid) {
-        newErrors.auth = 'Invalid EmailID or Password';
+      if (!isIdentifierValid || !isPasswordValid) {
+        newErrors.auth = 'Invalid Email/Mobile or Password';
       }
 
       setErrors(newErrors);
@@ -403,10 +494,20 @@ export const Login: React.FC = () => {
     if (!validateForm()) return;
 
     // Proceed with Mock Auth
-    authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
-    const role = authStore.getUser()?.role || 'customer';
-
-    startTransition(role);
+    if (!isSignUp) {
+      const isAgent = email.toLowerCase() === 'agent@claimpilot.ai';
+      if (isAgent) {
+        authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
+        startTransition('agent');
+      } else {
+        setShowOtp(true);
+        setResendTimer(42);
+      }
+    } else {
+      authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
+      const role = authStore.getUser()?.role || 'customer';
+      startTransition(role);
+    }
   };
 
   const strength = getPasswordStrength(password);
@@ -658,17 +759,17 @@ export const Login: React.FC = () => {
 
               <div>
                 <label className="form-label" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
-                  Email address {isSignUp && <span style={{ color: 'var(--danger)' }}>*</span>}
+                  {isSignUp ? 'Email address' : 'Email or Mobile Number'} {isSignUp && <span style={{ color: 'var(--danger)' }}>*</span>}
                 </label>
                 <input
-                  type="email"
+                  type={isSignUp ? "email" : "text"}
                   className="form-input"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (errors.email || errors.auth) setErrors({ ...errors, email: '', auth: '' });
                   }}
-                  placeholder="agent@claimpilot.ai"
+                  placeholder={isSignUp ? "agent@claimpilot.ai" : "Enter your email or mobile number"}
                   style={{ borderColor: (errors.email || errors.auth) ? 'var(--danger)' : undefined }}
                 />
                 {errors.email && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.email}</p>}
@@ -786,6 +887,110 @@ export const Login: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {showOtp && (
+        <div 
+          ref={otpModalRef}
+          style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div 
+            ref={otpContentRef}
+            style={{
+            backgroundColor: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '2.5rem',
+            width: '100%',
+            maxWidth: '420px',
+            textAlign: 'center',
+          }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+              Verify your identity
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+              We've sent a verification code to<br />
+              <strong style={{ color: 'var(--text-primary)' }}>******123</strong>
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              {otp.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={el => { otpRefs.current[i] = el; }}
+                  type="text"
+                  maxLength={6}
+                  value={digit}
+                  onChange={e => handleOtpChange(i, e.target.value)}
+                  onKeyDown={e => handleOtpKeyDown(i, e)}
+                  style={{
+                    width: '3rem',
+                    height: '3.5rem',
+                    textAlign: 'center',
+                    fontSize: '1.25rem',
+                    fontWeight: 600,
+                    backgroundColor: 'var(--bg-base)',
+                    border: `1px solid ${otpError ? 'var(--danger)' : 'var(--border)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = otpError ? 'var(--danger)' : 'var(--accent)'}
+                  onBlur={e => e.target.style.borderColor = otpError ? 'var(--danger)' : 'var(--border)'}
+                />
+              ))}
+            </div>
+
+            {otpError && (
+              <p style={{ color: 'var(--danger)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                Incorrect verification code. Please try again.
+              </p>
+            )}
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              {resendTimer > 0 ? (
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Resend code in 00:{resendTimer.toString().padStart(2, '0')}
+                </p>
+              ) : (
+                <button
+                  onClick={() => setResendTimer(42)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  Resend code
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={verifyOtp}
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '0.75rem', fontWeight: 600 }}
+            >
+              Verify
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
