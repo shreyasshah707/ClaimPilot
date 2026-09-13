@@ -60,6 +60,13 @@ export const Login: React.FC = () => {
     animateFadeIn(formColRef.current, { y: 12, duration: 0.4, delay: 0.1 });
   }, { scope: containerRef });
 
+  useGSAP(() => {
+    if (showOtp && otpModalRef.current && otpContentRef.current) {
+      gsap.fromTo(otpModalRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' });
+      gsap.fromTo(otpContentRef.current, { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, delay: 0.1, ease: 'power2.out' });
+    }
+  }, { dependencies: [showOtp] });
+
   const startAboutTransition = contextSafe(() => {
     if (transitionState !== 'idle') return;
     setTransitionState('enteringAbout');
@@ -494,19 +501,14 @@ export const Login: React.FC = () => {
     if (!validateForm()) return;
 
     // Proceed with Mock Auth
-    if (!isSignUp) {
-      const isAgent = email.toLowerCase() === 'agent@claimpilot.ai';
-      if (isAgent) {
-        authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
-        startTransition('agent');
-      } else {
-        setShowOtp(true);
-        setResendTimer(42);
-      }
-    } else {
+    const isAgentLogin = !isSignUp && email.toLowerCase() === 'agent@claimpilot.ai';
+    
+    if (isAgentLogin) {
       authStore.login(email, name || 'Demo User', phone || undefined, dob || undefined);
-      const role = authStore.getUser()?.role || 'customer';
-      startTransition(role);
+      startTransition('agent');
+    } else {
+      setShowOtp(true);
+      setResendTimer(42);
     }
   };
 
