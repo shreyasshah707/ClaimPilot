@@ -12,6 +12,10 @@ export const mockClaims: Claim[] = [
     incidentDate: '2026-08-18',
     location: 'Pune, Maharashtra',
     description: 'Front bumper and left headlight damaged after hitting a pole while parking.',
+    driverName: 'Rahul Mehta',
+    driverLicenseNumber: 'MH1220110012345',
+    driverLicenseFrontPhoto: 'https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?auto=format&fit=crop&q=80&w=400',
+    driverLicenseBackPhoto: 'https://images.unsplash.com/photo-1588667500588-444fc27b4b1a?auto=format&fit=crop&q=80&w=400',
     submittedAt: new Date(Date.now() - 42 * 60000).toISOString(), // 42 mins ago
     status: 'Pending Review',
     images: ['https://images.unsplash.com/photo-1590240974967-0c67e96fa47e?auto=format&fit=crop&q=80&w=800'],
@@ -28,6 +32,10 @@ export const mockClaims: Claim[] = [
     incidentDate: '2026-08-19',
     location: 'Mumbai, Maharashtra',
     description: 'Rear-ended by a truck at a traffic light.',
+    driverName: 'Priya Sharma',
+    driverLicenseNumber: 'MH0220150098765',
+    driverLicenseFrontPhoto: 'https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?auto=format&fit=crop&q=80&w=400',
+    driverLicenseBackPhoto: 'https://images.unsplash.com/photo-1588667500588-444fc27b4b1a?auto=format&fit=crop&q=80&w=400',
     submittedAt: new Date(Date.now() - 18 * 60000).toISOString(), // 18 mins ago
     status: 'AI Assessment',
     images: ['https://images.unsplash.com/photo-1563223771-5f8f8b6f3a38?auto=format&fit=crop&q=80&w=800'],

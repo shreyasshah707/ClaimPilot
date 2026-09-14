@@ -263,10 +263,10 @@ export const AgentClaimDetails = () => {
                 )}
                 <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
                 <Card style={{ flex: 1, minWidth: '250px' }}>
-                  <h3 className="text-sm text-muted uppercase font-bold flex items-center gap-sm mb-4"><User size={14} /> Customer</h3>
+                  <h3 className="text-sm text-muted uppercase font-bold flex items-center gap-sm mb-4"><User size={14} /> Customer & Driver</h3>
                   <div className="flex flex-col gap-sm text-sm">
                     <div>
-                      <span className="text-muted block text-xs">Name</span>
+                      <span className="text-muted block text-xs">Customer Name</span>
                       <span className="font-bold">{claim.customerName}</span>
                     </div>
                     <div>
@@ -285,6 +285,27 @@ export const AgentClaimDetails = () => {
                           {claim.engineNumber && <span>ENG: {claim.engineNumber}</span>}
                           {claim.chassisNumber && <span>VIN: {claim.chassisNumber}</span>}
                         </div>
+                      )}
+                    </div>
+                    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                      <span className="text-muted block text-xs mb-1">Driver Details</span>
+                      {claim.driverName ? (
+                        <>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold">{claim.driverName}</span>
+                            <span className="font-mono text-muted">{claim.driverLicenseNumber}</span>
+                          </div>
+                          <div className="flex gap-xs mt-2">
+                            {claim.driverLicenseFrontPhoto && (
+                              <img src={claim.driverLicenseFrontPhoto} alt="Front" style={{ width: '40px', height: '26px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => window.open(claim.driverLicenseFrontPhoto, '_blank')} title="View Front" />
+                            )}
+                            {claim.driverLicenseBackPhoto && (
+                              <img src={claim.driverLicenseBackPhoto} alt="Back" style={{ width: '40px', height: '26px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => window.open(claim.driverLicenseBackPhoto, '_blank')} title="View Back" />
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted italic">No driver info provided</span>
                       )}
                     </div>
                   </div>

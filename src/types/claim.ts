@@ -14,8 +14,10 @@ export interface Claim {
   engineNumber?: string;
   chassisNumber?: string;
   hsrpNumber?: string;
+  driverName?: string;
   driverLicenseNumber?: string;
-  driverLicensePhoto?: string;
+  driverLicenseFrontPhoto?: string;
+  driverLicenseBackPhoto?: string;
   submittedAt: string;
   status: ClaimStatus;
   images: string[];

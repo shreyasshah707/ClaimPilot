@@ -65,8 +65,10 @@ export const NewClaim = () => {
   const [engineNumber, setEngineNumber] = useState('');
   const [chassisNumber, setChassisNumber] = useState('');
   const [hsrpNumber, setHsrpNumber] = useState('');
+  const [driverName, setDriverName] = useState('');
   const [driverLicenseNumber, setDriverLicenseNumber] = useState('');
-  const [driverLicensePhoto, setDriverLicensePhoto] = useState<string | null>(null);
+  const [driverLicenseFrontPhoto, setDriverLicenseFrontPhoto] = useState<string | null>(null);
+  const [driverLicenseBackPhoto, setDriverLicenseBackPhoto] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<UploadedVideo[]>([]);
@@ -238,21 +240,25 @@ export const NewClaim = () => {
     setUploadNotice(null);
   };
 
-  const handleDLPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDLPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!isValidImageFile(file)) {
       setUploadNotice({
         type: 'error',
-        message: 'Unsupported format. Please upload a JPG, PNG, WEBP, or HEIC image of your driving license.'
+        message: 'Unsupported format. Please upload a JPG, PNG, WEBP, or HEIC image.'
       });
       e.target.value = '';
       return;
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setDriverLicensePhoto(previewUrl);
+    if (side === 'front') {
+      setDriverLicenseFrontPhoto(previewUrl);
+    } else {
+      setDriverLicenseBackPhoto(previewUrl);
+    }
     setUploadNotice(null);
     e.target.value = '';
   };
@@ -268,8 +274,10 @@ export const NewClaim = () => {
       engineNumber: engineNumber || undefined,
       chassisNumber: chassisNumber || undefined,
       hsrpNumber: hsrpNumber || undefined,
+      driverName: driverName || undefined,
       driverLicenseNumber: driverLicenseNumber || undefined,
-      driverLicensePhoto: driverLicensePhoto || undefined,
+      driverLicenseFrontPhoto: driverLicenseFrontPhoto || undefined,
+      driverLicenseBackPhoto: driverLicenseBackPhoto || undefined,
       description,
       images,
       video: videos[0]?.url || undefined,
@@ -480,6 +488,20 @@ export const NewClaim = () => {
                   </div>
                 )}
 
+                {/* Driver Name Input */}
+                <div className="form-group">
+                  <label className="form-label">
+                    Driver Name <span style={{ color: 'var(--danger)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Ramesh Kumar"
+                    value={driverName}
+                    onChange={(e) => setDriverName(e.target.value)}
+                  />
+                </div>
+
                 {/* Driving License Number Input */}
                 <div className="form-group">
                   <div className="flex justify-between items-center mb-1">
@@ -522,89 +544,121 @@ export const NewClaim = () => {
                 </div>
 
                 {/* Driving License Photo Upload */}
-                <div className="form-group">
-                  <label className="form-label mb-2">
-                    Driving License Photo <span style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-
-                  {!driverLicensePhoto ? (
-                    <div
-                      style={{
-                        border: '2px dashed var(--border-light)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '2.5rem 1.5rem',
-                        textAlign: 'center',
-                        backgroundColor: 'var(--bg-primary)',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        transition: 'border-color 0.2s, background-color 0.2s'
-                      }}
-                      className="hover:bg-tertiary"
-                    >
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-                        onChange={handleDLPhotoUpload}
-                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
-                      />
-                      <div className="flex flex-col items-center gap-xs">
-                        <FileText size={32} color="var(--accent-primary)" />
-                        <span className="font-bold text-base mt-1">Upload Driver's License Card</span>
-                        <span className="text-xs text-muted">Clear photo of the front of the driving license (JPG, PNG, WEBP, HEIC)</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                        backgroundColor: 'var(--bg-surface)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '1rem'
-                      }}
-                    >
-                      <div className="flex items-center gap-md">
-                        <img
-                          src={driverLicensePhoto}
-                          alt="Driving License"
-                          style={{
-                            width: '100px',
-                            height: '65px',
-                            objectFit: 'cover',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--border-color)'
-                          }}
+                <div className="form-group flex gap-md">
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label mb-2">
+                      License Front <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    {!driverLicenseFrontPhoto ? (
+                      <div
+                        style={{
+                          border: '2px dashed var(--border-light)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '1.5rem',
+                          textAlign: 'center',
+                          backgroundColor: 'var(--bg-primary)',
+                          position: 'relative',
+                          cursor: 'pointer',
+                          transition: 'border-color 0.2s, background-color 0.2s'
+                        }}
+                        className="hover:bg-tertiary"
+                      >
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+                          onChange={(e) => handleDLPhotoUpload(e, 'front')}
+                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
                         />
-                        <div>
-                          <div className="flex items-center gap-xs">
-                            <span className="font-semibold text-sm">Driving License Photo</span>
-                            <span className="badge badge-success text-xs flex items-center gap-xs">
-                              <CheckCircle2 size={12} /> Uploaded
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted mt-1">
-                            {driverLicenseNumber ? driverLicenseNumber.toUpperCase() : 'Ready for verification'}
-                          </p>
+                        <div className="flex flex-col items-center gap-xs">
+                          <FileText size={24} color="var(--accent-primary)" />
+                          <span className="font-bold text-sm mt-1">Upload Front</span>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setDriverLicensePhoto(null)}
-                        className="btn-ghost"
-                        style={{ padding: '0.4rem', color: 'var(--danger)', cursor: 'pointer' }}
-                        title="Remove and upload different photo"
+                    ) : (
+                      <div
+                        style={{
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0.75rem',
+                          backgroundColor: 'var(--bg-surface)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
                       >
-                        <X size={18} />
-                      </button>
-                    </div>
-                  )}
+                        <div className="flex items-center gap-sm">
+                          <img
+                            src={driverLicenseFrontPhoto}
+                            alt="Front"
+                            style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
+                          />
+                          <span className="font-semibold text-xs">Front Uploaded</span>
+                        </div>
+                        <button type="button" onClick={() => setDriverLicenseFrontPhoto(null)} className="btn-ghost p-1 text-danger">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label mb-2">
+                      License Back <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
+                    {!driverLicenseBackPhoto ? (
+                      <div
+                        style={{
+                          border: '2px dashed var(--border-light)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '1.5rem',
+                          textAlign: 'center',
+                          backgroundColor: 'var(--bg-primary)',
+                          position: 'relative',
+                          cursor: 'pointer',
+                          transition: 'border-color 0.2s, background-color 0.2s'
+                        }}
+                        className="hover:bg-tertiary"
+                      >
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+                          onChange={(e) => handleDLPhotoUpload(e, 'back')}
+                          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+                        />
+                        <div className="flex flex-col items-center gap-xs">
+                          <FileText size={24} color="var(--accent-primary)" />
+                          <span className="font-bold text-sm mt-1">Upload Back</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0.75rem',
+                          backgroundColor: 'var(--bg-surface)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div className="flex items-center gap-sm">
+                          <img
+                            src={driverLicenseBackPhoto}
+                            alt="Back"
+                            style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
+                          />
+                          <span className="font-semibold text-xs">Back Uploaded</span>
+                        </div>
+                        <button type="button" onClick={() => setDriverLicenseBackPhoto(null)} className="btn-ghost p-1 text-danger">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Requirement Hint */}
-                {(!driverLicenseNumber.trim() || !validateIndianDL(driverLicenseNumber) || !driverLicensePhoto) && (
+                {(!driverName.trim() || !driverLicenseNumber.trim() || !validateIndianDL(driverLicenseNumber) || !driverLicenseFrontPhoto || !driverLicenseBackPhoto) && (
                   <div style={{
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
@@ -612,7 +666,7 @@ export const NewClaim = () => {
                     fontSize: '0.75rem',
                     color: 'var(--text-secondary)'
                   }}>
-                    Both a valid Indian Driving License number and a license photo are required to proceed.
+                    Driver name, valid Indian Driving License number, and both front & back photos are required.
                   </div>
                 )}
 
@@ -621,7 +675,7 @@ export const NewClaim = () => {
                   <button
                     className="btn btn-primary"
                     onClick={handleNext}
-                    disabled={!driverLicenseNumber.trim() || !validateIndianDL(driverLicenseNumber) || !driverLicensePhoto}
+                    disabled={!driverName.trim() || !driverLicenseNumber.trim() || !validateIndianDL(driverLicenseNumber) || !driverLicenseFrontPhoto || !driverLicenseBackPhoto}
                   >
                     Continue <ChevronRight size={16} />
                   </button>
@@ -899,22 +953,36 @@ export const NewClaim = () => {
                     <h4 className="text-sm text-muted uppercase font-bold mb-4">Driver Details</h4>
                     <div className="flex items-center justify-between gap-md" style={{ flexWrap: 'wrap' }}>
                       <div>
+                        <div className="text-xs text-muted mb-1">Driver Name</div>
+                        <div className="font-semibold text-base mb-2">{driverName}</div>
                         <div className="text-xs text-muted mb-1">Driving License Number</div>
                         <div className="font-semibold text-base" style={{ letterSpacing: '0.5px' }}>{driverLicenseNumber}</div>
                         <div className="flex items-center gap-xs mt-1 text-xs" style={{ color: 'var(--success, #10b981)' }}>
                           <CheckCircle2 size={13} /> Verified Indian DL Format
                         </div>
                       </div>
-                      {driverLicensePhoto && (
-                        <div className="flex items-center gap-sm">
-                          <img
-                            src={driverLicensePhoto}
-                            alt="License Front"
-                            style={{ width: '80px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
-                          />
-                          <span className="text-xs text-muted">License Card Attached</span>
-                        </div>
-                      )}
+                      <div className="flex gap-sm">
+                        {driverLicenseFrontPhoto && (
+                          <div className="flex flex-col items-center gap-xs">
+                            <img
+                              src={driverLicenseFrontPhoto}
+                              alt="Front"
+                              style={{ width: '80px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
+                            />
+                            <span className="text-xs text-muted">Front</span>
+                          </div>
+                        )}
+                        {driverLicenseBackPhoto && (
+                          <div className="flex flex-col items-center gap-xs">
+                            <img
+                              src={driverLicenseBackPhoto}
+                              alt="Back"
+                              style={{ width: '80px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
+                            />
+                            <span className="text-xs text-muted">Back</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
