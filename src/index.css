@@ -92,11 +92,11 @@
    ============================================================ */
 [data-theme="dark"] {
   /* Page bg is lighter so cards below it appear to pop/float */
-  --bg-base:    #1C1C1E;   /* page — Apple-dark matte, not pure black     */
-  --bg-surface: #0F0F0F;   /* cards/panels — darker than page, pops out   */
-  --bg-overlay: #080808;   /* modals — deepest layer                       */
-  --bg-hover:   #1A1A1A;   /* hover inside panels                          */
-  --bg-active:  #222222;   /* selected / active rows                       */
+  --bg-base:    #0B0B0B;   /* page — Obsidian black                       */
+  --bg-surface: #141414;   /* cards/panels — dark matte black, pops out   */
+  --bg-overlay: #050505;   /* modals — deepest layer                       */
+  --bg-hover:   #1C1C1C;   /* hover inside panels                          */
+  --bg-active:  #242424;   /* selected / active rows                       */
 
   /* Text */
   --text-primary:   #F2F2F2;

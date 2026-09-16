@@ -44,6 +44,10 @@ export const Login: React.FC = () => {
   const glassRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
 
+  // Scroll inertia lock refs
+  const scrollLockRef = useRef(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Page entrance — runs once on mount
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -70,6 +74,13 @@ export const Login: React.FC = () => {
   const startAboutTransition = contextSafe(() => {
     if (transitionState !== 'idle') return;
     setTransitionState('enteringAbout');
+
+    // Lock scrolling to absorb trackpad inertia
+    scrollLockRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollLockRef.current = false;
+    }, 500);
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -122,6 +133,13 @@ export const Login: React.FC = () => {
   const reverseAboutTransition = contextSafe(() => {
     if (transitionState !== 'about') return;
     setTransitionState('returningToLogin');
+
+    // Lock scrolling to absorb trackpad inertia
+    scrollLockRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollLockRef.current = false;
+    }, 500);
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -251,6 +269,16 @@ export const Login: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = (e: WheelEvent) => {
+      // Absorb trackpad inertia dynamically
+      if (scrollLockRef.current) {
+        e.preventDefault();
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          scrollLockRef.current = false;
+        }, 150);
+        return;
+      }
+
       if (transitionState !== 'idle') return;
 
       const target = e.target as HTMLElement;
