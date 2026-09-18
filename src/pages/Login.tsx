@@ -623,7 +623,6 @@ export const Login: React.FC = () => {
         style={{
           minHeight: '100vh',
           display: 'flex',
-          backgroundColor: 'var(--bg-base)',
         }}
       >
         {/* Left Column — Branding */}

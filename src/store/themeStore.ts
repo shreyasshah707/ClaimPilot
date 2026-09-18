@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'dark';
 
 class ThemeStore {
-  private theme: Theme;
+  private theme: Theme = 'dark';
   private listeners: Set<(theme: Theme) => void> = new Set();
 
   constructor() {
-    const stored = localStorage.getItem('cp_theme') as Theme | null;
-    this.theme = stored === 'light' ? 'light' : 'dark';
     this.apply(this.theme);
   }
 
@@ -17,10 +15,7 @@ class ThemeStore {
   }
 
   toggle() {
-    this.theme = this.theme === 'light' ? 'dark' : 'light';
-    localStorage.setItem('cp_theme', this.theme);
-    this.apply(this.theme);
-    this.notify();
+    // Light mode removed
   }
 
   private apply(theme: Theme) {
@@ -32,9 +27,7 @@ class ThemeStore {
     return () => { this.listeners.delete(listener); };
   }
 
-  private notify() {
-    this.listeners.forEach(l => l(this.theme));
-  }
+
 }
 
 export const themeStore = new ThemeStore();

@@ -10,12 +10,10 @@ import { CustomerDashboard } from '../pages/customer/CustomerDashboard';
 import {  NewClaim  } from '../pages/customer/NewClaim';
 import {  ClaimAnalysis  } from '../pages/customer/ClaimAnalysis';
 import { MyClaims } from '../pages/customer/MyClaims';
-import { ClaimApproved } from '../pages/customer/ClaimApproved';
 
 import { AgentDashboard } from '../pages/agent/AgentDashboard';
 import {  AgentClaims  } from '../pages/agent/AgentClaims';
 import {  AgentClaimDetails  } from '../pages/agent/AgentClaimDetails';
-import { AgentClientResponse } from '../pages/agent/AgentClientResponse';
 
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode, allowedRole: 'customer' | 'agent' }) => {
   const { user } = useAuth();
@@ -59,10 +57,7 @@ export const AppRoutes = () => {
           <Route index element={<AgentDashboard />} />
           <Route path="claims" element={<AgentClaims />} />
           <Route path="claims/:id" element={<AgentClaimDetails />} />
-          <Route path="claims/:id/response" element={<AgentClientResponse />} />
         </Route>
-        
-        <Route path="/claim-response/:id" element={<ClaimApproved />} />
         
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

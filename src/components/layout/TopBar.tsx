@@ -1,13 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { resetClaims } from '../../services/claimsApi';
-
 export const TopBar: React.FC = () => {
-  const handleReset = () => {
-    resetClaims();
-    window.location.reload();
-  };
-
   return (
     <div className="topbar">
       {/* Logo */}
@@ -30,22 +23,6 @@ export const TopBar: React.FC = () => {
         </Link>
       </nav>
 
-      {/* Reset demo data button */}
-      <button
-        onClick={handleReset}
-        style={{
-          flexShrink: 0,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          color: 'var(--text-secondary)',
-          padding: '0.35rem 0.75rem',
-          borderRadius: '6px',
-          fontSize: '0.75rem',
-          cursor: 'pointer',
-        }}
-      >
-        Reset Demo Data
-      </button>
     </div>
   );
 };

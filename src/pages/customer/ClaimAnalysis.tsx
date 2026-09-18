@@ -7,7 +7,7 @@ import type { DamageAnalysis, DamageArea } from '../../types/analysis';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { DamageViewer } from '../../components/ui/DamageViewer';
-import { ArrowLeft, ShieldAlert, Zap, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, Zap, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useGSAP, animateFadeIn, animateStagger } from '../../lib/gsap';
 
 export const ClaimAnalysis = () => {
@@ -131,6 +131,15 @@ export const ClaimAnalysis = () => {
                     {claim.status === 'Approved' ? 'Final approved claim payout.' : '*AI-generated cost estimates are indicative and may vary following assessment and approval by a qualified engineer.'}
                   </p>
                 </div>
+
+                {claim.status === 'Approved' && (
+                  <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <span className="font-bold block text-sm mb-1 flex items-center gap-sm" style={{ color: 'var(--success)' }}><CheckCircle size={14} /> Reason for Approved Amount</span>
+                    <p className="text-sm p-3" style={{ backgroundColor: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--success)', color: 'var(--text-primary)' }}>
+                      {claim.approveReason || 'The settlement amount has been approved based on the AI damage assessment and verified repair estimates.'}
+                    </p>
+                  </div>
+                )}
 
                 {claim.status === 'Rejected' && claim.rejectionReason && (
                   <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>

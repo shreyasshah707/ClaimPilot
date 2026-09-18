@@ -1,17 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
-import { useTheme } from '../../store/themeStore';
 import { claimsApi } from '../../services/claimsApi';
 import type { Claim } from '../../types/claim';
 import { Badge } from '../ui/Badge';
-import { LogOut, Plus, ChevronDown, Sun, Moon } from 'lucide-react';
+import { LogOut, Plus, ChevronDown } from 'lucide-react';
 import { TopBar } from './TopBar';
 import { gsap, useGSAP, animateFadeIn, animateStagger, isReducedMotion } from '../../lib/gsap';
 
 export const CustomerLayout: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -142,10 +140,11 @@ export const CustomerLayout: React.FC = () => {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)', overflow: 'hidden' }}>
-      <TopBar />
-      <div style={{ display: 'flex', flex: 1, height: 'calc(100vh - 72px)', overflow: 'hidden', position: 'relative' }}>
-        {/* ── Sidebar ── */}
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, borderRadius: 'var(--radius-xl)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(24px)' }}>
+        <TopBar />
+        <div style={{ display: 'flex', flex: 1, height: 'calc(100vh - 72px - 2rem)', overflow: 'hidden', position: 'relative' }}>
+          {/* ── Sidebar ── */}
         <aside className="sidebar">
           {/* Logo */}
           <div className="sidebar-header">
@@ -263,18 +262,7 @@ export const CustomerLayout: React.FC = () => {
               </p>
               <p className="sidebar-user-role">Personal Account</p>
             </div>
-            {/* Dark mode toggle */}
-            <button
-              onClick={toggleTheme}
-              title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-              className="btn-ghost"
-              style={{ padding: '0.3rem', display: 'flex', alignItems: 'center', flexShrink: 0 }}
-            >
-              {theme === 'dark'
-                ? <Sun size={15} style={{ color: 'var(--text-secondary)' }} />
-                : <Moon size={15} style={{ color: 'var(--text-secondary)' }} />
-              }
-            </button>
+
           </div>
         </aside>
 
@@ -307,13 +295,14 @@ export const CustomerLayout: React.FC = () => {
 
                 <Link
                   to="/customer/new-claim"
-                  className="btn btn-primary"
+                  className="btn btn-file-claim"
                   style={{
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.9375rem',
+                    padding: '0.85rem 1.85rem',
+                    fontSize: '1rem',
+                    gap: '0.5rem',
                   }}
                 >
-                  <Plus size={16} />
+                  <Plus size={18} strokeWidth={2.5} />
                   File a New Claim
                 </Link>
 
@@ -355,6 +344,7 @@ export const CustomerLayout: React.FC = () => {
             </div>
           )}
         </main>
+      </div>
       </div>
     </div>
   );
