@@ -1,0 +1,50 @@
+# ClaimPilot — Photo Mode Pipeline
+# Tested on Python 3.10-3.13, Google Colab T4 GPU
+
+# Core ML
+torch>=2.7.0
+torchvision
+torchaudio
+ultralytics>=8.3.0
+
+# Transformers (Depth Anything V2, SAM2, Qwen2-VL)
+transformers>=5.1.0
+accelerate>=1.0.0
+
+# Surface normals (DSINE via Torch Hub)
+geffnet
+
+# Computer vision
+opencv-python-headless>=4.10.0
+pillow>=10.4.0
+numpy>=1.26.0
+
+# Segmentation
+# SAM2 is loaded via transformers — no separate install needed
+
+# Metadata forensics
+exifread>=3.0.0
+
+# Duplicate detection
+imagehash>=4.3.1
+
+# Database
+pymongo>=4.9.0
+
+# API layer (Week 7)
+fastapi>=0.115.0
+uvicorn[standard]>=0.31.0
+python-multipart>=0.0.12
+pydantic>=2.9.0
+
+# Utilities
+tqdm>=4.66.0
+python-dotenv>=1.0.1
+
+# ----------------------------------------------------------------
+# CUDA NOTE (NVIDIA RTX 50-series / Blackwell GPUs, e.g. RTX 5070):
+# Install torch separately FIRST from the cu128 index:
+#   pip install torch torchvision torchaudio \
+#       --index-url https://download.pytorch.org/whl/cu128
+# Then: pip install -r requirements.txt
+# ----------------------------------------------------------------
