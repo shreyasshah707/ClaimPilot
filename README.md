@@ -202,17 +202,7 @@ python run\_local\_pipeline.py \\
     --output ./results
 ```
 
-\---
-
-## Physical Measurements
-
-|Measurement|Source|Notes|
-|-|-|-|
-|Damage area (px)|SAM2 mask|Always available|
-|Damage area (cm²)|SAM2 + license plate calibration|Only when plate visible|
-|Relative depth map|Depth Anything V2|Always available|
-|Metric depth (mm)|Depth Anything V2 + plate calibration|Only when plate visible|
-|Crease angle (θ°)|DSINE surface normals|Always available; most meaningful for dents|
+\
 
 **Calibration method:** a standard EU/India license plate (520mm wide) in the image is
 used as the physical reference. The pipeline auto-detects plates via an OpenCV Haar
