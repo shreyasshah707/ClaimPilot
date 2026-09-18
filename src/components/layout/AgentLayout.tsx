@@ -2,7 +2,8 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/authStore';
 import { useTheme } from '../../store/themeStore';
-import { LogOut, Sun, Moon } from 'lucide-react';
+import { LogOut, Sun, Moon, RotateCcw } from 'lucide-react';
+import { resetClaims } from '../../services/claimsApi';
 import '../../agent.css';
 
 export const AgentLayout: React.FC = () => {
@@ -14,6 +15,11 @@ export const AgentLayout: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleReset = () => {
+    resetClaims();
+    window.location.reload();
   };
 
   return (
@@ -56,6 +62,14 @@ export const AgentLayout: React.FC = () => {
                 ? <Sun size={15} style={{ color: 'var(--text-secondary)' }} />
                 : <Moon size={15} style={{ color: 'var(--text-secondary)' }} />
               }
+            </button>
+            <button
+              onClick={handleReset}
+              className="btn-ghost"
+              style={{ padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+              title="Reset demo data"
+            >
+              <RotateCcw size={15} style={{ color: 'var(--text-secondary)' }} />
             </button>
             <button
               onClick={handleLogout}

@@ -139,15 +139,16 @@ export const AgentClaims = () => {
               <th>Vehicle</th>
               <th>Type</th>
               <th>Submitted</th>
+              <th>Client Response</th>
               <th>Status</th>
               <th>Risk</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>Loading claims...</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>Loading claims...</td></tr>
             ) : filteredClaims.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No claims found for this filter.</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>No claims found for this filter.</td></tr>
             ) : (
               filteredClaims.map(claim => (
                 <tr
@@ -165,6 +166,30 @@ export const AgentClaims = () => {
                   <td>{claim.claimType}</td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
                     {new Date(claim.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </td>
+                  <td>
+                    {claim.agentAction && claim.clientResponse ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/agent/claims/${claim.id}/response`); }}
+                        style={{ 
+                          padding: '0.3rem 0.65rem', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600,
+                          color: '#fff',
+                          background: claim.clientResponse === 'Awaiting Response' ? 'var(--warning)' : claim.clientResponse === 'Approved by Client' ? 'var(--success)' : 'var(--danger)',
+                          border: 'none', 
+                          borderRadius: '999px', 
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                        }}
+                      >
+                        {claim.clientResponse} →
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>-</span>
+                    )}
                   </td>
                   <td>
                     <Badge variant={

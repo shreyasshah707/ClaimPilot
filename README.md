@@ -66,6 +66,29 @@ A dense, information-rich environment engineered for rapid case triaging and str
 
 ---
 
+### 3. Approved Claim Response Workflow
+
+Once an agent approves a claim, the following flow takes place:
+
+1. **Agent approves the claim** from the Agent Workspace with a settlement amount.
+2. **Client receives the approval** on their portal (`/customer/claims/:id/approved`) showing the settlement details.
+3. **Client responds** — they can either:
+   - **Approve the settlement** (optionally updating contact details like email/phone for communication).
+   - **Reject the settlement** (with a required explanation).
+4. **Agent sees the client's response** in real time on the Agent Workspace (`/agent/claims/:id/response`) — no page refresh needed.
+5. **If the client approved**, the agent sees an **"OK to Proceed"** button to forward the claim to the finance department for payment processing.
+6. **Once "OK to Proceed" is clicked**, the "Change Decision" button disappears because the claim has been forwarded and can no longer be revised.
+
+> **Important rule:** Client approval alone never triggers payment. The agent must explicitly click "OK to Proceed" to authorize the finance handoff.
+
+---
+
+### Changing a Decision
+
+At any point before clicking "OK to Proceed", the agent can use the **"Change Decision"** button to revise their original approval/rejection. This resets the client's response back to "Awaiting Response" so the client can review the updated decision.
+
+---
+
 ## 🛰 3D Vision & AI Inspection Suite
 
 ClaimPilot includes interactive computer vision and 3D geometric analysis tools in the Agent Workspace:
@@ -147,10 +170,11 @@ The application includes mock authentication for rapid testing and demonstration
 ## 🔄 Architecture & Data Flow (Mock vs Production)
 
 ### Current State (Frontend Demonstration)
-* **Claims Storage:** In-memory mock collection (`src/mock/claims.ts`) mutated via `src/services/claimsApi.ts`.
+* **Claims Storage:** In-memory mock collection (`src/mock/claims.ts`) mutated via `src/services/claimsApi.ts`. Changes are also saved to `localStorage` so that data stays in sync across browser tabs (e.g. when the client approves in one tab and the agent views the response in another).
+* **Cross-Tab Sync:** The agent workspace listens for `localStorage` changes using the browser's `storage` event, so the agent page updates automatically when the client responds — no manual refresh needed.
 * **Session Persistence:** Active user credentials are saved in `localStorage` (`auth_user`) to survive page reloads.
 * **AI Analysis:** Pre-computed analysis records exist for claims `CLM-1024`, `CLM-1025`, and `CLM-1026`. Any newly created claim will display fallback placeholder data until connected to a live ML inference server.
-* **Reset on Refresh:** Newly submitted claims will reset upon a hard browser reload since backend persistence is not yet wired.
+* **Reset Demo Data Button:** Since `localStorage` persists data even after page refreshes, a **"Reset Demo Data"** button is provided in both the customer TopBar and the agent header. Clicking it clears all saved claim data and reloads the page with the original mock data. This button is **temporary** — it exists purely for testing convenience and will be removed once a real backend is connected.
 
 ### Production Backend Migration Checklist
 When integrating a real backend (e.g. Node.js/Express, FastAPI, or Go + PostgreSQL):

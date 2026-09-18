@@ -74,6 +74,8 @@ export const mockClaims: Claim[] = [
     approvedAmount: 14500,
     reviewedByAgent: true,
     agentAction: 'Approved',
+    clientResponse: 'Awaiting Response',
+    paymentStatus: 'Not yet authorized',
     images: ['https://images.unsplash.com/photo-1590240974967-0c67e96fa47e?auto=format&fit=crop&q=80&w=800'],
     fraudRisk: 'Low'
   },

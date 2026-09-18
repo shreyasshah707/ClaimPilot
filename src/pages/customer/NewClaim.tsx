@@ -36,7 +36,7 @@ const validateHSRP = (v: string) => !v || HSRP_REGEX.test(v.toUpperCase());
 
 // Indian Driving License format: State(2) + RTO(2) + Year(4) + Number(7) = 15 chars
 // Allows spaces or hyphens between components (e.g., MH14 20110012345 or MH-14-2011-0012345 or MH1420110012345)
-export const validateIndianDL = (dl: string): boolean => {
+const validateIndianDL = (dl: string): boolean => {
   if (!dl) return false;
   const clean = dl.replace(/[-\s]/g, '').toUpperCase();
   return /^[A-Z]{2}[0-9]{2}(?:19|20)[0-9]{2}[0-9]{7}$/.test(clean);

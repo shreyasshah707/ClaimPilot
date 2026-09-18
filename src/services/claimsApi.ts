@@ -1,6 +1,24 @@
 import { Claim } from '../types/claim';
-import { mockClaims } from '../mock/claims';
+import { mockClaims as initialMockClaims } from '../mock/claims';
 import { authStore } from '../store/authStore';
+
+const STORAGE_KEY = 'claimpilot_mock_claims';
+let mockClaims: Claim[] = [];
+try {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) mockClaims = JSON.parse(stored);
+  else mockClaims = [...initialMockClaims];
+} catch (e) {
+  mockClaims = [...initialMockClaims];
+}
+
+const saveClaims = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(mockClaims));
+
+export const resetClaims = () => {
+  localStorage.removeItem(STORAGE_KEY);
+  mockClaims.length = 0;
+  mockClaims.push(...initialMockClaims);
+};
 
 export const claimsApi = {
   getClaims: async (): Promise<Claim[]> => {
@@ -42,9 +60,10 @@ export const claimsApi = {
       fraudRisk: 'Low'
     };
     mockClaims.unshift(newClaim);
+    saveClaims();
     return newClaim;
   },
-  
+
   updateClaimStatus: async (id: string, status: Claim['status'], additionalData?: Partial<Claim>): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 400));
     const claim = mockClaims.find(c => c.id === id);
@@ -52,7 +71,41 @@ export const claimsApi = {
       claim.status = status;
       if (additionalData) {
         Object.assign(claim, additionalData);
+
+        // If agent approves or rejects, reset client response so they can respond
+        if (additionalData.agentAction === 'Approved' || additionalData.agentAction === 'Rejected') {
+          claim.clientResponse = 'Awaiting Response';
+          claim.paymentStatus = 'Not yet authorized';
+        }
       }
+      saveClaims();
+    }
+  },
+
+  updateClientResponse: async (
+    id: string,
+    response: 'Approved by Client' | 'Rejected by Client',
+    explanation?: string,
+    contactUpdates?: { email?: string, phone?: string }
+  ): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    const claim = mockClaims.find(c => c.id === id);
+    if (claim) {
+      claim.clientResponse = response;
+      claim.clientResponseTimestamp = new Date().toISOString();
+      if (explanation) claim.clientResponseExplanation = explanation;
+      if (contactUpdates?.email) claim.clientContactEmail = contactUpdates.email;
+      if (contactUpdates?.phone) claim.clientContactPhone = contactUpdates.phone;
+      saveClaims();
+    }
+  },
+
+  updatePaymentStatus: async (id: string, status: Claim['paymentStatus']): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const claim = mockClaims.find(c => c.id === id);
+    if (claim) {
+      claim.paymentStatus = status;
+      saveClaims();
     }
   }
 };

@@ -36,10 +36,11 @@ export const AgentClaimDetails = () => {
   const [showRequestInfoModal, setShowRequestInfoModal] = useState(false);
   const [engineerEstimate, setEngineerEstimate] = useState<string>('');
   const [approvedAmount, setApprovedAmount] = useState<string>('');
+  const [approveReason, setApproveReason] = useState<string>('');
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [requestInfoReason, setRequestInfoReason] = useState<string>('');
   
-  const isApproveValid = engineerEstimate.trim() !== '' && approvedAmount.trim() !== '' && Number(engineerEstimate) > 0 && Number(approvedAmount) > 0;
+  const isApproveValid = engineerEstimate.trim() !== '' && approvedAmount.trim() !== '' && Number(engineerEstimate) > 0 && Number(approvedAmount) > 0 && approveReason.trim().length > 0;
   const isRejectValid = rejectionReason.trim().length > 0;
   const isRequestInfoValid = requestInfoReason.trim().length > 0;
   
@@ -244,10 +245,17 @@ export const AgentClaimDetails = () => {
                       {claim.status !== 'Approved' && claim.status !== 'Rejected' && claim.requestInfoReason && <><Clock size={16} /> Additional Information Requested</>}
                     </div>
                     {claim.status === 'Approved' && (
-                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                        Approved Payout: <strong>₹{claim.approvedAmount?.toLocaleString() || 'N/A'}</strong>
-                        {claim.engineerEstimate ? ` · Engineer Estimate: ₹${claim.engineerEstimate.toLocaleString()}` : ''}
-                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                          Approved Payout: <strong>₹{claim.approvedAmount?.toLocaleString() || 'N/A'}</strong>
+                          {claim.engineerEstimate ? ` · Engineer Estimate: ₹${claim.engineerEstimate.toLocaleString()}` : ''}
+                        </p>
+                        {claim.approveReason && (
+                          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                            <strong>Reason:</strong> {claim.approveReason}
+                          </p>
+                        )}
+                      </div>
                     )}
                     {claim.status === 'Rejected' && claim.rejectionReason && (
                       <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
@@ -660,6 +668,18 @@ export const AgentClaimDetails = () => {
                 placeholder="Enter approved payout amount..."
               />
             </div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                Reason for the approved claim amount
+              </label>
+              <textarea
+                value={approveReason}
+                onChange={e => setApproveReason(e.target.value)}
+                className="form-input"
+                style={{ width: '100%', padding: '0.625rem', minHeight: '80px', resize: 'vertical', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                placeholder="Explain the rationale for this settlement amount..."
+              />
+            </div>
             <div className="flex gap-sm justify-end">
               <button
                 type="button"
@@ -673,7 +693,7 @@ export const AgentClaimDetails = () => {
                 type="button"
                 className="btn-success"
                 disabled={!isApproveValid}
-                onClick={() => submitAction('Approved', { engineerEstimate: Number(engineerEstimate), approvedAmount: Number(approvedAmount), agentAction: 'Approved' })}
+                onClick={() => submitAction('Approved', { engineerEstimate: Number(engineerEstimate), approvedAmount: Number(approvedAmount), approveReason: approveReason.trim(), agentAction: 'Approved' })}
                 style={{
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-sm)',

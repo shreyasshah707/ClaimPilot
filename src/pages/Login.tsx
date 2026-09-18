@@ -357,6 +357,14 @@ export const Login: React.FC = () => {
     }
   });
 
+  const closeOtp = contextSafe(() => {
+    setOtp(['', '', '', '', '', '']);
+    setOtpError(false);
+    if (isReducedMotion()) { setShowOtp(false); return; }
+    if (otpContentRef.current) gsap.to(otpContentRef.current, { scale: 0.95, opacity: 0, duration: 0.2, ease: 'power2.in' });
+    if (otpModalRef.current) gsap.to(otpModalRef.current, { opacity: 0, duration: 0.2, delay: 0.05, ease: 'power2.in', onComplete: () => setShowOtp(false) });
+  });
+
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
       const pasted = value.slice(0, 6).split('');
@@ -937,6 +945,7 @@ export const Login: React.FC = () => {
           <div 
             ref={otpContentRef}
             style={{
+            position: 'relative',
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
@@ -945,6 +954,21 @@ export const Login: React.FC = () => {
             maxWidth: '420px',
             textAlign: 'center',
           }}>
+            <button
+              onClick={closeOtp}
+              aria-label="Close"
+              style={{
+                position: 'absolute', top: '0.75rem', right: '0.75rem',
+                background: 'none', border: 'none', color: 'var(--text-secondary)',
+                fontSize: '1.25rem', cursor: 'pointer', padding: '0.25rem 0.5rem',
+                lineHeight: 1, borderRadius: 'var(--radius-sm)',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+            >
+              ✕
+            </button>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
               Verify your identity
             </h2>

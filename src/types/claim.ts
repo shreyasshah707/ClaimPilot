@@ -26,9 +26,16 @@ export interface Claim {
   fraudRisk: 'Low' | 'Medium' | 'High';
   engineerEstimate?: number;
   approvedAmount?: number;
+  approveReason?: string;
   rejectionReason?: string;
   requestInfoReason?: string;
   reviewedByAgent?: boolean;
   reviewedAt?: string;
   agentAction?: 'Approved' | 'Rejected' | 'More Info Requested';
+  clientResponse?: 'Awaiting Response' | 'Approved by Client' | 'Rejected by Client';
+  clientContactEmail?: string;
+  clientContactPhone?: string;
+  paymentStatus?: 'Not yet authorized' | 'Forwarded to Finance' | 'Payment Processing';
+  clientResponseTimestamp?: string;
+  clientResponseExplanation?: string;
 }
